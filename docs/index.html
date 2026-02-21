@@ -18,10 +18,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
         rel="stylesheet">
-
-    <!-- Google Play Store Link (UPDATE THIS) -->
-    <meta name="google-play-app" content="app-id=com.habitbee.app">
-
+    
     <style>
         :root {
             --primary: #FFD93D;
@@ -85,7 +82,11 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 1.5rem;
+        }
+
+        .logo-icon svg {
+            width: 24px;
+            height: 24px;
         }
 
         .nav-links {
@@ -211,6 +212,57 @@
             position: relative;
         }
 
+        .phone-slider {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .phone-slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .phone-slide.active {
+            opacity: 1;
+        }
+
+        .phone-slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 26px;
+        }
+
+        .phone-dots {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 8px;
+            z-index: 10;
+        }
+
+        .phone-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .phone-dot.active {
+            background: var(--primary);
+            width: 20px;
+            border-radius: 3px;
+        }
+
         .features {
             padding: 100px 0
                 /* Features Section */
@@ -280,12 +332,12 @@
         .screenshots-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
+            gap: 30px;
         }
 
         .screenshot {
             background: #0a0a15;
-            border-radius: 20px;
+            border-radius: 24px;
             aspect-ratio: 9/19;
             display: flex;
             align-items: center;
@@ -293,13 +345,60 @@
             color: var(--text-muted);
             font-size: 3rem;
             overflow: hidden;
-            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            box-shadow: 
+                0 0 0 1px rgba(255, 217, 61, 0.1),
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                0 0 20px rgba(255, 217, 61, 0.05);
+            transition: all 0.4s ease;
+        }
+
+        .screenshot::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 24px;
+            padding: 1px;
+            background: linear-gradient(
+                135deg,
+                rgba(255, 217, 61, 0.4) 0%,
+                rgba(255, 217, 61, 0.1) 50%,
+                rgba(255, 217, 61, 0.05) 100%
+            );
+            -webkit-mask: 
+                linear-gradient(#fff 0 0) content-box, 
+                linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .screenshot:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 
+                0 0 0 1px rgba(255, 217, 61, 0.3),
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                0 0 40px rgba(255, 217, 61, 0.15);
         }
 
         .screenshot img {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 20px;
+        }
+
+        .screenshot-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-muted);
+        }
+
+        .screenshot-placeholder span {
+            font-size: 0.8rem;
+            opacity: 0.5;
         }
 
         /* Download Section */
@@ -486,7 +585,13 @@
         <div class="container">
             <nav>
                 <div class="logo">
-                    <div class="logo-icon">🐝</div>
+                    <div class="logo-icon">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2C13.1046 2 14 2.89543 14 4V5H15C16.1046 5 17 5.89543 17 7V8C17 9.10457 16.1046 10 15 10H14V11C14 12.1046 13.1046 13 12 13C10.8954 13 10 12.1046 10 11V10H9C7.89543 10 7 9.10457 7 8V7C7 5.89543 7.89543 5 9 5H10V4C10 2.89543 10.8954 2 12 2Z" fill="#1a1a2e"/>
+                            <circle cx="12" cy="17" r="3" fill="#1a1a2e"/>
+                            <path d="M12 6C14.5 6 16.5 8 16.5 10.5C16.5 11.5 16 12.5 15.5 13.5C14.5 12.5 13.5 12 12 12C10.5 12 9.5 12.5 8.5 13.5C8 12.5 7.5 11.5 7.5 10.5C7.5 8 9.5 6 12 6Z" fill="#1a1a2e"/>
+                        </svg>
+                    </div>
                     HabitBee
                 </div>
                 <ul class="nav-links">
@@ -518,21 +623,33 @@
                 <div class="phone-mockup">
                     <div class="phone-frame">
                         <div class="phone-screen">
-                            <div style="padding: 20px; text-align: center; padding-top: 40px;">
-                                <div style="font-size: 3rem; margin-bottom: 10px;">🐝</div>
-                                <h3 style="color: #FFD93D; margin-bottom: 20px;">HabitBee</h3>
-                                <div
-                                    style="background: rgba(255,217,61,0.1); border-radius: 12px; padding: 15px; margin-bottom: 10px;">
-                                    <div style="font-size: 0.8rem; color: #a0a0a0;">Today's Progress</div>
-                                    <div style="font-size: 1.5rem; font-weight: bold; color: #FFD93D;">75%</div>
+                            <div class="phone-slider" id="phoneSlider">
+                                <div class="phone-slide active">
+                                    <img src="images/screenshot1.jpg" alt="Home Screen"
+                                        onerror="this.style.display='none';">
                                 </div>
-                                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px;">
-                                    <div style="font-size: 0.9rem; margin-bottom: 8px;">🏃 Morning Exercise</div>
-                                    <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px;">
-                                        <div
-                                            style="height: 100%; width: 100%; background: #4CAF50; border-radius: 3px;">
-                                        </div>
-                                    </div>
+                                <div class="phone-slide">
+                                    <img src="images/screenshot2.jpg" alt="Habit Detail"
+                                        onerror="this.style.display='none';">
+                                </div>
+                                <div class="phone-slide">
+                                    <img src="images/screenshot3.jpg" alt="Add Habit"
+                                        onerror="this.style.display='none';">
+                                </div>
+                                <div class="phone-slide">
+                                    <img src="images/screenshot4.jpg" alt="Progress"
+                                        onerror="this.style.display='none';">
+                                </div>
+                                <div class="phone-slide">
+                                    <img src="images/screenshot5.jpg" alt="Settings"
+                                        onerror="this.style.display='none';">
+                                </div>
+                                <div class="phone-dots">
+                                    <div class="phone-dot active"></div>
+                                    <div class="phone-dot"></div>
+                                    <div class="phone-dot"></div>
+                                    <div class="phone-dot"></div>
+                                    <div class="phone-dot"></div>
                                 </div>
                             </div>
                         </div>
@@ -592,23 +709,23 @@
             <div class="screenshots-grid">
                 <div class="screenshot">
                     <img src="images/screenshot1.jpg" alt="Home Screen"
-                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'screenshot-placeholder\'><span>📱</span><span>Home Screen</span></div>';">
                 </div>
                 <div class="screenshot">
                     <img src="images/screenshot2.jpg" alt="Habit Detail"
-                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'screenshot-placeholder\'><span>📱</span><span>Habit Detail</span></div>';">
                 </div>
                 <div class="screenshot">
                     <img src="images/screenshot3.jpg" alt="Add Habit"
-                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'screenshot-placeholder\'><span>📱</span><span>Add Habit</span></div>';">
                 </div>
                 <div class="screenshot">
                     <img src="images/screenshot4.jpg" alt="Progress"
-                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'screenshot-placeholder\'><span>📱</span><span>Progress</span></div>';">
                 </div>
                 <div class="screenshot">
                     <img src="images/screenshot5.jpg" alt="Settings"
-                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='<div class=\'screenshot-placeholder\'><span>📱</span><span>Settings</span></div>';">
                 </div>
             </div>
         </div>
@@ -617,18 +734,9 @@
     <section class="download" id="download">
         <div class="container">
             <h2>Download HabitBee</h2>
-            <p>Start building better habits now. Choose your platform below.</p>
+            <p>Start building better habits now.</p>
 
             <div class="download-links">
-                <a href="https://play.google.com/store/apps/details?id=com.habitbee.app" target="_blank"
-                    class="download-card">
-                    <div class="download-card-icon">📱</div>
-                    <div class="download-card-text">
-                        <span>Download on</span>
-                        <strong>Google Play</strong>
-                    </div>
-                </a>
-
                 <a href="#" data-github-repo="true" data-github-path="/releases" id="githubReleasesLink"
                     class="download-card">
                     <div class="download-card-icon">📦</div>
@@ -637,14 +745,7 @@
                         <strong>APK Direct</strong>
                     </div>
                 </a>
-
-                <a href="#" data-github-repo="true" id="githubMainLink" class="download-card">
-                    <div class="download-card-icon">💻</div>
-                    <div class="download-card-text">
-                        <span>View on</span>
-                        <strong>GitHub</strong>
-                    </div>
-                </a>
+            </div>
             </div>
         </div>
     </section>
@@ -680,11 +781,10 @@
 
     <footer>
         <div class="container">
-            <p>© 2024 HabitBee. Built with ❤️ by <a href="#" data-github-repo="true" id="githubProfileLink">Mustafa
+            <p>© 2026 HabitBee. Built with Flutter by <a href="#" data-github-repo="true" id="githubProfileLink">Mustafa
                     Sheliya</a></p>
             <p style="margin-top: 10px;">
                 <a href="#" data-github-repo="true">GitHub</a> •
-                <a href="https://play.google.com/store/apps/details?id=com.habitbee.app">Google Play</a> •
                 <a href="#">Privacy</a>
             </p>
         </div>
@@ -695,7 +795,6 @@
         // ====== CONFIGURATION ======
         const GITHUB_USER = 'Mssheliya';
         const GITHUB_REPO = 'HabitBee';
-        const PLAY_STORE_LINK = 'https://play.google.com/store/apps/details?id=com.habitbee.app';
 
         // ====== FETCH LATEST RELEASE ======
         async function fetchLatestRelease() {
@@ -756,6 +855,38 @@
                 const path = link.getAttribute('data-github-path') || '';
                 link.href = `https://github.com/${GITHUB_USER}/${GITHUB_REPO}${path}`;
             });
+
+            // Phone Slider Auto Slide
+            const phoneSlider = document.getElementById('phoneSlider');
+            if (phoneSlider) {
+                const slides = phoneSlider.querySelectorAll('.phone-slide');
+                const dots = phoneSlider.querySelectorAll('.phone-dot');
+                let currentSlide = 0;
+                const slideInterval = 3000;
+
+                function showSlide(index) {
+                    slides.forEach(slide => slide.classList.remove('active'));
+                    dots.forEach(dot => dot.classList.remove('active'));
+                    slides[index].classList.add('active');
+                    dots[index].classList.add('active');
+                }
+
+                function nextSlide() {
+                    currentSlide = (currentSlide + 1) % slides.length;
+                    showSlide(currentSlide);
+                }
+
+                if (slides.length > 0) {
+                    setInterval(nextSlide, slideInterval);
+                    
+                    dots.forEach((dot, index) => {
+                        dot.addEventListener('click', () => {
+                            currentSlide = index;
+                            showSlide(currentSlide);
+                        });
+                    });
+                }
+            }
 
             fetchLatestRelease();
         });

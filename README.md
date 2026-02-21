@@ -12,3 +12,5 @@ An offline-first Habit Tracker application built with Flutter, featuring a Mater
 - **Analytics**: Track your progress with beautiful charts and statistics
 - **Offline-First**: All data stored locally using Hive database
 - **Dark Mode**: Support for both light and dark themes
+
+Developer: Mustafa Sheliya
