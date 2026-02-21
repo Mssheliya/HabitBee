@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HabitBee - Your Personal Habit Tracker</title>
+    <meta name="description"
+        content="HabitBee - Build positive habits with your personal habit tracker. Track daily progress, set reminders, and achieve your goals.">
+
+    <!-- Open Graph / Social Media -->
+    <meta property="og:title" content="HabitBee - Your Personal Habit Tracker">
+    <meta property="og:description" content="Build positive habits and track your daily progress. Download now!">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Google Play Store Link (UPDATE THIS) -->
+    <meta name="google-play-app" content="app-id=com.habitbee.app">
+
+    <style>
+        :root {
+            --primary: #FFD93D;
+            --primary-dark: #FFC107;
+            --dark: #1a1a2e;
+            --dark-secondary: #16213e;
+            --text-light: #ffffff;
+            --text-muted: #a0a0a0;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, var(--dark) 0%, var(--dark-secondary) 100%);
+            color: var(--text-light);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        /* Header */
+        header {
+            padding: 20px 0;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            background: rgba(26, 26, 46, 0.95);
+            backdrop-filter: blur(10px);
+            z-index: 100;
+        }
+
+        nav {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 30px;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-light);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+
+        .nav-links a:hover {
+            color: var(--primary);
+        }
+
+        /* Version Badge */
+        .version-badge {
+            background: rgba(255, 217, 61, 0.2);
+            color: var(--primary);
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding-top: 80px;
+        }
+
+        .hero-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: center;
+        }
+
+        .hero-text h1 {
+            font-size: 3.5rem;
+            line-height: 1.2;
+            margin-bottom: 20px;
+        }
+
+        .hero-text h1 span {
+            color: var(--primary);
+        }
+
+        .hero-text p {
+            font-size: 1.2rem;
+            color: var(--text-muted);
+            margin-bottom: 30px;
+            line-height: 1.6;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.3s, box-shadow 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--dark);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(255, 217, 61, 0.3);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            border: 2px solid var(--text-light);
+            color: var(--text-light);
+        }
+
+        .btn-secondary:hover {
+            background: var(--text-light);
+            color: var(--dark);
+        }
+
+        /* Phone Mockup */
+        .phone-mockup {
+            position: relative;
+            display: flex;
+            justify-content: center;
+        }
+
+        .phone-frame {
+            width: 280px;
+            height: 560px;
+            background: #0a0a15;
+            border-radius: 40px;
+            padding: 10px;
+            box-shadow: 0 30px 60px rgba(0, 0, 0, 0.5);
+            border: 3px solid #2a2a3e;
+        }
+
+        .phone-screen {
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 32px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .features {
+            padding: 100px 0
+                /* Features Section */
+            ;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+        }
+
+        .section-title h2 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+        }
+
+        .section-title p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            transition: transform 0.3s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .feature-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--primary);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+
+        .feature-card p {
+            color: var(--text-muted);
+            line-height: 1.6;
+        }
+
+        /* Screenshots Section */
+        .screenshots {
+            padding: 100px 0;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .screenshots-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+        }
+
+        .screenshot {
+            background: #0a0a15;
+            border-radius: 20px;
+            aspect-ratio: 9/19;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 3rem;
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .screenshot img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        /* Download Section */
+        .download {
+            padding: 100px 0;
+            text-align: center;
+        }
+
+        .download h2 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+
+        .download p {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            margin-bottom: 40px;
+        }
+
+        .download-links {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .download-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px 30px;
+            text-decoration: none;
+            color: white;
+            transition: transform 0.3s, background 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            min-width: 200px;
+        }
+
+        .download-card:hover {
+            transform: translateY(-3px);
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .download-card-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--primary);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .download-card-text {
+            text-align: left;
+        }
+
+        .download-card-text span {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .download-card-text strong {
+            font-size: 1.1rem;
+        }
+
+        /* Changelog Section */
+        .changelog {
+            padding: 80px 0;
+        }
+
+        .changelog-card {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .changelog-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .changelog-header h3 {
+            font-size: 1.5rem;
+        }
+
+        .release-tag {
+            background: var(--primary);
+            color: var(--dark);
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .changelog-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .changelog-item {
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .changelog-item:last-child {
+            border-bottom: none;
+        }
+
+        .changelog-item h4 {
+            color: var(--primary);
+            font-size: 1rem;
+            margin-bottom: 5px;
+        }
+
+        .changelog-item ul {
+            margin-left: 20px;
+            color: var(--text-muted);
+        }
+
+        .changelog-item li {
+            margin-bottom: 5px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+        }
+
+        footer p {
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero-content {
+                grid-template-columns: 1fr;
+                text-align: center;
+            }
+
+            .hero-text h1 {
+                font-size: 2.5rem;
+            }
+
+            .cta-buttons {
+                justify-content: center;
+            }
+
+            .nav-links {
+                display: none;
+            }
+
+            .phone-mockup {
+                margin-top: 40px;
+            }
+
+            .download-links {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <div class="container">
+            <nav>
+                <div class="logo">
+                    <div class="logo-icon">🐝</div>
+                    HabitBee
+                </div>
+                <ul class="nav-links">
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#screenshots">Screenshots</a></li>
+                    <li><a href="#download">Download</a></li>
+                </ul>
+                <span class="version-badge" id="versionBadge">v1.0.0</span>
+            </nav>
+        </div>
+    </header>
+
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-text">
+                    <h1>Build Better Habits with <span>HabitBee</span></h1>
+                    <p>Your personal habit tracker that helps you build positive habits and track your daily progress.
+                        Stay motivated and achieve your goals!</p>
+                    <div class="cta-buttons">
+                        <a href="#download" class="btn btn-primary">
+                            📱 Download App
+                        </a>
+                        <a href="#" data-github-repo="true" id="githubStarLink" class="btn btn-secondary">
+                            ⭐ Star on GitHub
+                        </a>
+                    </div>
+                </div>
+                <div class="phone-mockup">
+                    <div class="phone-frame">
+                        <div class="phone-screen">
+                            <div style="padding: 20px; text-align: center; padding-top: 40px;">
+                                <div style="font-size: 3rem; margin-bottom: 10px;">🐝</div>
+                                <h3 style="color: #FFD93D; margin-bottom: 20px;">HabitBee</h3>
+                                <div
+                                    style="background: rgba(255,217,61,0.1); border-radius: 12px; padding: 15px; margin-bottom: 10px;">
+                                    <div style="font-size: 0.8rem; color: #a0a0a0;">Today's Progress</div>
+                                    <div style="font-size: 1.5rem; font-weight: bold; color: #FFD93D;">75%</div>
+                                </div>
+                                <div style="background: rgba(255,255,255,0.05); border-radius: 12px; padding: 15px;">
+                                    <div style="font-size: 0.9rem; margin-bottom: 8px;">🏃 Morning Exercise</div>
+                                    <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 3px;">
+                                        <div
+                                            style="height: 100%; width: 100%; background: #4CAF50; border-radius: 3px;">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <div class="container">
+            <div class="section-title">
+                <h2>Amazing Features</h2>
+                <p>Everything you need to build lasting habits</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📊</div>
+                    <h3>Track Progress</h3>
+                    <p>Monitor your daily habits with beautiful visualizations and detailed statistics.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔔</div>
+                    <h3>Reminders</h3>
+                    <p>Get timely notifications to never miss your habits. Stay consistent!</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎯</div>
+                    <h3>Goals</h3>
+                    <p>Set daily or weekly goals and track your progress towards achieving them.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📈</div>
+                    <h3>Statistics</h3>
+                    <p>View detailed analytics with streaks, completion rates, and more.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🎨</div>
+                    <h3>Customizable</h3>
+                    <p>Choose from multiple themes and personalize your app experience.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">💾</div>
+                    <h3>Offline First</h3>
+                    <p>Your data stays on your device. Works offline without internet!</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="screenshots" id="screenshots">
+        <div class="container">
+            <div class="section-title">
+                <h2>App Screenshots</h2>
+                <p>A glimpse of what HabitBee looks like</p>
+            </div>
+            <div class="screenshots-grid">
+                <div class="screenshot">
+                    <img src="images/screenshot1.jpg" alt="Home Screen"
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                </div>
+                <div class="screenshot">
+                    <img src="images/screenshot2.jpg" alt="Habit Detail"
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                </div>
+                <div class="screenshot">
+                    <img src="images/screenshot3.jpg" alt="Add Habit"
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                </div>
+                <div class="screenshot">
+                    <img src="images/screenshot4.jpg" alt="Progress"
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                </div>
+                <div class="screenshot">
+                    <img src="images/screenshot5.jpg" alt="Settings"
+                        onerror="this.style.display='none'; this.parentElement.innerHTML='📱';">
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="download" id="download">
+        <div class="container">
+            <h2>Download HabitBee</h2>
+            <p>Start building better habits now. Choose your platform below.</p>
+
+            <div class="download-links">
+                <a href="https://play.google.com/store/apps/details?id=com.habitbee.app" target="_blank"
+                    class="download-card">
+                    <div class="download-card-icon">📱</div>
+                    <div class="download-card-text">
+                        <span>Download on</span>
+                        <strong>Google Play</strong>
+                    </div>
+                </a>
+
+                <a href="#" data-github-repo="true" data-github-path="/releases" id="githubReleasesLink"
+                    class="download-card">
+                    <div class="download-card-icon">📦</div>
+                    <div class="download-card-text">
+                        <span>Download</span>
+                        <strong>APK Direct</strong>
+                    </div>
+                </a>
+
+                <a href="#" data-github-repo="true" id="githubMainLink" class="download-card">
+                    <div class="download-card-icon">💻</div>
+                    <div class="download-card-text">
+                        <span>View on</span>
+                        <strong>GitHub</strong>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="changelog">
+        <div class="container">
+            <div class="section-title">
+                <h2>Latest Updates</h2>
+                <p>See what's new in the recent versions</p>
+            </div>
+            <div class="changelog-card">
+                <div class="changelog-header">
+                    <h3 id="releaseTitle">Release Notes</h3>
+                    <span class="release-tag" id="releaseVersion">v1.0.0</span>
+                </div>
+                <div class="changelog-content" id="changelogContent">
+                    <!-- Dynamic content loaded from GitHub -->
+                    <div class="changelog-item">
+                        <h4>v1.0.0 - Initial Release</h4>
+                        <ul>
+                            <li>🚀 First release of HabitBee</li>
+                            <li>📱 Beautiful Material 3 design</li>
+                            <li>🔔 Habit reminders</li>
+                            <li>📊 Progress tracking</li>
+                            <li>🎨 Multiple themes</li>
+                            <li>💾 Offline data storage</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>© 2024 HabitBee. Built with ❤️ by <a href="#" data-github-repo="true" id="githubProfileLink">Mustafa
+                    Sheliya</a></p>
+            <p style="margin-top: 10px;">
+                <a href="#" data-github-repo="true">GitHub</a> •
+                <a href="https://play.google.com/store/apps/details?id=com.habitbee.app">Google Play</a> •
+                <a href="#">Privacy</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- GitHub API Script - Auto Update Version & Changelog -->
+    <script>
+        // ====== CONFIGURATION ======
+        const GITHUB_USER = 'Mssheliya';
+        const GITHUB_REPO = 'HabitBee';
+        const PLAY_STORE_LINK = 'https://play.google.com/store/apps/details?id=com.habitbee.app';
+
+        // ====== FETCH LATEST RELEASE ======
+        async function fetchLatestRelease() {
+            try {
+                const response = await fetch(`https://api.github.com/repos/${GITHUB_USER}/${GITHUB_REPO}/releases/latest`);
+
+                if (!response.ok) {
+                    console.log('Using default version');
+                    return;
+                }
+
+                const release = await response.json();
+                const version = release.tag_name || 'v1.0.0';
+
+                // Update version badge
+                document.getElementById('versionBadge').textContent = version;
+                document.getElementById('releaseVersion').textContent = version;
+                document.getElementById('releaseTitle').textContent = release.name || 'Release Notes';
+
+                // Build changelog from release body
+                if (release.body) {
+                    const changelogHtml = parseChangelog(release.body, version);
+                    document.getElementById('changelogContent').innerHTML = changelogHtml;
+                }
+
+                console.log('Loaded latest release:', version);
+            } catch (error) {
+                console.log('Could not fetch release info:', error);
+            }
+        }
+
+        // ====== PARSE CHANGELOG ======
+        function parseChangelog(body, version) {
+            const lines = body.split('\n');
+            let html = '';
+            let inSection = false;
+
+            for (const line of lines) {
+                if (line.startsWith('## ') || line.startsWith('### ')) {
+                    if (inSection) html += '</ul></div>';
+                    const title = line.replace(/^#+\s*/, '').trim();
+                    html += `<div class="changelog-item"><h4>${title}</h4><ul>`;
+                    inSection = true;
+                } else if (line.startsWith('- ') || line.startsWith('* ')) {
+                    html += `<li>${line.replace(/^[-*]\s*/, '').trim()}</li>`;
+                }
+            }
+
+            if (inSection) html += '</ul></div>';
+
+            return html || `<div class="changelog-item"><ul><li>Check GitHub for full changelog</li></ul></div>`;
+        }
+
+        // ====== INITIALIZE ======
+        document.addEventListener('DOMContentLoaded', () => {
+            // Update all GitHub links dynamically
+            document.querySelectorAll('[data-github-repo]').forEach(link => {
+                const path = link.getAttribute('data-github-path') || '';
+                link.href = `https://github.com/${GITHUB_USER}/${GITHUB_REPO}${path}`;
+            });
+
+            fetchLatestRelease();
+        });
+    </script>
+</body>
+
+</html>

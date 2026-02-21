@@ -6,6 +6,7 @@ import 'package:habit_bee/src/data/repositories/habit_repository.dart';
 import 'package:habit_bee/src/data/models/habit.dart';
 import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/widgets/material_loading_indicator.dart';
+import 'package:habit_bee/src/features/habit_detail/presentation/habit_detail_screen.dart';
 
 class ProgressScreen extends StatefulWidget {
   const ProgressScreen({super.key});
@@ -79,13 +80,12 @@ class ProgressScreenState extends State<ProgressScreen> with AutomaticKeepAliveC
         
         for (final completion in completions) {
           final date = DateTime(completion.date.year, completion.date.month, completion.date.day);
-          
+
           if (completion.completed) {
             completedDates.add(date);
             progressMap[date] = 1.0;
           } else if (completion.completionCount > 0) {
-            // Include partial completions
-            completedDates.add(date);
+            // Track partial progress but don't add to completed dates for streak calculation
             progressMap[date] = completion.completionCount / habit.frequencyPerDay;
           }
         }
@@ -529,7 +529,15 @@ class ProgressScreenState extends State<ProgressScreen> with AutomaticKeepAliveC
     final bestStreak = _calculateBestStreak(completionDates);
     final totalCompleted = completionDates.length;
 
-    return Container(
+    return GestureDetector(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => HabitDetailScreen(habit: habit),
+          ),
+        ).then((_) => _loadData());
+      },
+      child: Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -632,6 +640,7 @@ class ProgressScreenState extends State<ProgressScreen> with AutomaticKeepAliveC
           // Mini calendar strip showing last 7 days
           _buildMiniCalendarStrip(theme, habit, completionDates),
         ],
+      ),
       ),
     );
   }

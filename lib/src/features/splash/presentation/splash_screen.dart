@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:habit_bee/src/features/navigation/main_shell.dart';
+import 'package:habit_bee/src/core/services/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -63,12 +64,25 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     });
   }
 
-  void _navigateToHome() {
+  void _navigateToHome() async {
     if (_isNavigating || !mounted) return;
     
     setState(() {
       _isNavigating = true;
     });
+    
+    debugPrint('SplashScreen: Checking for updates...');
+    
+    final updateInfo = await UpdateService.checkForUpdate();
+    
+    if (!mounted) return;
+    
+    if (updateInfo != null) {
+      debugPrint('SplashScreen: Update available: ${updateInfo.version}');
+      await UpdateService.showUpdateDialog(context, updateInfo);
+    }
+    
+    if (!mounted) return;
     
     debugPrint('SplashScreen: Navigating to MainShell');
     

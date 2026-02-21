@@ -13,6 +13,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_bee/src/data/models/app_settings.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -289,6 +290,107 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  void _showAboutDialog(ThemeData theme, ThemeColors currentColors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                color: currentColors.primary,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.emoji_nature, color: Colors.white, size: 30),
+            ),
+            const SizedBox(width: 12),
+            const Text('HabitBee'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Your personal habit tracker',
+              style: theme.textTheme.bodyLarge,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'HabitBee helps you build positive habits and track your daily progress. Stay motivated and achieve your goals!',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Icon(Icons.person, size: 18, color: currentColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Created by Mustafa Sheliya',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Icon(Icons.code, size: 18, color: currentColors.primary),
+                const SizedBox(width: 8),
+                Text(
+                  'Version 1.0.0',
+                  style: theme.textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Close', style: TextStyle(color: currentColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _shareApp() {
+    Share.share(
+      'Check out HabitBee - Your personal habit tracker! Download now and start building positive habits. https://play.google.com/store/apps/details?id=com.habitbee.app',
+      subject: 'HabitBee - Habit Tracker App',
+    );
+  }
+
+  Future<void> _rateApp() async {
+    final url = Uri.parse('https://play.google.com/store/apps/details?id=com.habitbee.app');
+    try {
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open store')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -507,14 +609,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         leading: const Icon(Icons.star),
                         title: const Text('Rate HabitBee'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: _rateApp,
+                      ),
+                      const Divider(height: 1),
+                      ListTile(
+                        leading: const Icon(Icons.info_outline),
+                        title: const Text('About HabitBee'),
+                        trailing: const Icon(Icons.chevron_right),
+                        onTap: () => _showAboutDialog(theme, currentColors),
                       ),
                       const Divider(height: 1),
                       ListTile(
                         leading: const Icon(Icons.share),
                         title: const Text('Share HabitBee'),
                         trailing: const Icon(Icons.chevron_right),
-                        onTap: () {},
+                        onTap: _shareApp,
                       ),
                     ],
                   ),

@@ -268,15 +268,17 @@ class _HabitTileState extends State<HabitTile> {
                           ),
                         ),
                         const SizedBox(height: 4),
-                      Text(
-                        _frequency > 1
-                            ? '${widget.habit.category} • $_completionCount/$_frequency times${_isCompleted ? " ✓ Done" : ""}'
-                            : '${widget.habit.category}${_isCompleted ? " ✓ Done" : ""}',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: _isCompleted ? Colors.green : theme.colorScheme.onSurfaceVariant,
-                          fontWeight: _isCompleted ? FontWeight.bold : FontWeight.normal,
+                        Text(
+                          _frequency > 1
+                              ? _isCompleted
+                                  ? '${widget.habit.category} • ${((_completionCount / _frequency) * 100).round()}% ✓ Done'
+                                  : '${widget.habit.category} • ${((_completionCount / _frequency) * 100).round()}% ($_completionCount/$_frequency)'
+                              : '${widget.habit.category}${_isCompleted ? " ✓ Done" : ""}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: _isCompleted ? Colors.green : theme.colorScheme.onSurfaceVariant,
+                            fontWeight: _isCompleted ? FontWeight.bold : FontWeight.normal,
+                          ),
                         ),
-                      ),
                       ],
                     ),
                   ),
@@ -344,66 +346,52 @@ class _HabitTileState extends State<HabitTile> {
                 Positioned(
                   left: 0,
                   right: 0,
-                  bottom: 0,
-                  child: TweenAnimationBuilder<double>(
-                    duration: const Duration(milliseconds: 600),
-                    curve: Curves.easeOutCubic,
-                    tween: Tween<double>(
-                      begin: 0.0,
-                      end: _frequency > 0 ? (_completionCount / _frequency).clamp(0.0, 1.0) : 0.0,
-                    ),
-                    builder: (context, progress, child) {
-                      return Container(
-                        height: 6,
-                        decoration: BoxDecoration(
-                          color: widget.habit.color.withValues(alpha: 0.15),
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          ),
+                  bottom: 4,
+                  child: Center(
+                    child: SizedBox(
+                      width: 0.8,
+                      child: TweenAnimationBuilder<double>(
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.easeOutCubic,
+                        tween: Tween<double>(
+                          begin: 0.0,
+                          end: _frequency > 0 ? (_completionCount / _frequency).clamp(0.0, 1.0) : 0.0,
                         ),
-                        child: ClipRRect(
-                          borderRadius: const BorderRadius.only(
-                            bottomLeft: Radius.circular(12),
-                            bottomRight: Radius.circular(12),
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerLeft,
-                            child: Container(
-                              width: progress * MediaQuery.of(context).size.width,
-                              constraints: const BoxConstraints(maxWidth: double.infinity),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.centerLeft,
-                                  end: Alignment.centerRight,
-                                  colors: [
-                                    widget.habit.color.withValues(alpha: 0.9),
-                                    widget.habit.color,
-                                    widget.habit.color.withValues(alpha: 0.95),
-                                  ],
-                                  stops: const [0.0, 0.5, 1.0],
+                        builder: (context, progress, child) {
+                          return LayoutBuilder(
+                            builder: (context, constraints) {
+                              return Container(
+                                height: 3,
+                                decoration: BoxDecoration(
+                                  color: widget.habit.color.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.only(
+                                    bottomLeft: Radius.circular(12),
+                                    bottomRight: Radius.circular(12),
+                                  ),
                                 ),
-                                boxShadow: _isCompleted
-                                    ? [
-                                        BoxShadow(
-                                          color: widget.habit.color.withValues(alpha: 0.5),
-                                          blurRadius: 8,
-                                          spreadRadius: 1,
-                                        ),
-                                      ]
-                                    : [
-                                        BoxShadow(
-                                          color: widget.habit.color.withValues(alpha: 0.3),
-                                          blurRadius: 4,
-                                          offset: const Offset(0, 1),
-                                        ),
-                                      ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      );
-                    },
+                                clipBehavior: Clip.antiAlias,
+                                child: Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: Container(
+                                    width: progress * constraints.maxWidth,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                        colors: [
+                                          widget.habit.color.withValues(alpha: 0.9),
+                                          widget.habit.color,
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    ),
                   ),
                 ),
             ],

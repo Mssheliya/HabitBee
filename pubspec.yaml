@@ -54,6 +54,12 @@ dependencies:
   share_plus: ^10.0.0
   file_picker: ^8.1.2
   
+  # URL Launcher
+  url_launcher: ^6.3.0
+
+  # HTTP Requests
+  http: ^1.2.0
+  
   # Color Picker
   flutter_colorpicker: ^1.1.0
 
@@ -77,7 +83,7 @@ flutter:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/icons/HabitBee app icon.jpeg"
+  image_path: "assets/icons/HabitBee app icon.png"
   min_sdk_android: 21
   adaptive_icon_background: "#FFC107"
-  adaptive_icon_foreground: "assets/icons/HabitBee app icon.jpeg"
+  adaptive_icon_foreground: "assets/icons/HabitBee app icon.png"
