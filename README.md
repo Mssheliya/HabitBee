@@ -1,7 +1,7 @@
 # 🌟 HabitBee
 
 <p align="center">
-  <img src="docs/images/HabitBee app icon.png" alt="HabitBee Logo" width="120" style="border-radius: 24px;">
+  <img src="docs/images/HabitBee app icon.png" alt="HabitBee Logo" width="120" style="border-radius: 24 px;">
 </p>
 
 <p align="center">
@@ -23,14 +23,14 @@
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="docs/images/screenshot1.jpg" alt="Home Screen" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
-  <img src="docs/images/screenshot2.jpg" alt="Add Habit" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
-  <img src="docs/images/screenshot3.jpg" alt="Analytics" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
+  <img src="docs/images/screenshot1.jpg" alt="Home Screen" width="200" style="border-radius: 12 px; margin: 10 px; border: 1 px solid #e0e0e0;">
+  <img src="docs/images/screenshot2.jpg" alt="Add Habit" width="200" style="border-radius: 12 px; margin: 10 px; border: 1 px solid #e0e0e0;">
+  <img src="docs/images/screenshot3.jpg" alt="Analytics" width="200" style="border-radius: 12 px; margin: 10 px; border: 1 px solid #e0e0e0;">
 </p>
 
 <p align="center">
-  <img src="docs/images/screenshot4.jpg" alt="Progress" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
-  <img src="docs/images/screenshot5.jpg" alt="Settings" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
+  <img src="docs/images/screenshot4.jpg" alt="Progress" width="200" style="border-radius: 12 px; margin: 10 px; border: 1 px solid #e0e0e0;">
+  <img src="docs/images/screenshot5.jpg" alt="Settings" width="200" style="border-radius: 12 px; margin: 10 px; border: 1 px solid #e0e0e0;">
 </p>
 
 ---
