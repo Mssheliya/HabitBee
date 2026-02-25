@@ -1,7 +1,7 @@
 # 🌟 HabitBee
 
 <p align="center">
-  <img src="docs/images/HabitBee app icon.png" alt="HabitBee Logo" width="120">
+  <img src="docs/images/HabitBee app icon.png" alt="HabitBee Logo" width="120" style="border-radius: 24px;">
 </p>
 
 <p align="center">
@@ -23,14 +23,14 @@
 ## 📱 Screenshots
 
 <p align="center">
-  <img src="docs/images/screenshot1.jpg" alt="Home Screen" width="200">
-  <img src="docs/images/screenshot2.jpg" alt="Add Habit" width="200">
-  <img src="docs/images/screenshot3.jpg" alt="Analytics" width="200">
+  <img src="docs/images/screenshot1.jpg" alt="Home Screen" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
+  <img src="docs/images/screenshot2.jpg" alt="Add Habit" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
+  <img src="docs/images/screenshot3.jpg" alt="Analytics" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
 </p>
 
 <p align="center">
-  <img src="docs/images/screenshot4.jpg" alt="Progress" width="200">
-  <img src="docs/images/screenshot5.jpg" alt="Settings" width="200">
+  <img src="docs/images/screenshot4.jpg" alt="Progress" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
+  <img src="docs/images/screenshot5.jpg" alt="Settings" width="200" style="border-radius: 12px; margin: 10px; border: 1px solid #e0e0e0;">
 </p>
 
 ---
@@ -53,44 +53,6 @@
 | 💾 **Offline-First** | All data stored locally using Hive database |
 | 🔐 **No Account Required** | Your data stays on your device |
 | 📦 **Lightweight** | Minimal storage and battery usage |
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how you can help:
-
-### 🏁 Getting Started
-
-1. **Fork** the repository
-2. **Clone** your fork:
-   ```bash
-   git clone https://github.com/YOUR_USERNAME/HabitBee.git
-   ```
-
-3. **Create** a new branch:
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-
-4. **Make** your changes and **commit**:
-   ```bash
-   git commit -m "Add your feature description"
-   ```
-
-5. **Push** to your branch:
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-
-6. **Create** a Pull Request
-
-### 📝 Guidelines
-
-- Follow the existing code style and conventions
-- Write meaningful commit messages
-- Test your changes before submitting
-- Keep pull requests focused and atomic
 
 ---
 
