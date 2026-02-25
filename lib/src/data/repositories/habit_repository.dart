@@ -3,6 +3,7 @@ import 'package:habit_bee/src/data/models/habit.dart';
 import 'package:habit_bee/src/data/models/habit_completion.dart';
 import 'package:habit_bee/src/data/services/storage_service.dart';
 import 'package:habit_bee/src/core/services/notification_service.dart';
+import 'package:habit_bee/src/core/utils/motivational_messages.dart';
 
 class HabitRepository {
   final StorageService _storageService;
@@ -455,8 +456,8 @@ class HabitRepository {
           // Schedule new notification
           await notificationService.scheduleNotification(
             id: habit.notificationId,
-            title: 'Habit Reminder',
-            body: 'Time to complete: ${habit.name}',
+            title: MotivationalMessages.getTitle(habit.category),
+            body: MotivationalMessages.getMessage(habit.category, habit.name),
             scheduledDate: scheduledDate,
             repeatDays: habit.repeatDays,
           );

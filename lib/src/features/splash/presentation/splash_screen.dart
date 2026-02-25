@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'dart:async';
 import 'package:habit_bee/src/features/navigation/main_shell.dart';
 import 'package:habit_bee/src/core/services/update_service.dart';
 
@@ -58,10 +57,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
     _logoController.forward();
 
-    // Navigate after shorter delay (1.2 seconds total)
-    Timer(const Duration(milliseconds: 1200), () {
-      _navigateToHome();
-    });
+    _navigateToHome();
   }
 
   void _navigateToHome() async {
@@ -73,13 +69,19 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     
     debugPrint('SplashScreen: Checking for updates...');
     
+    // Run update check in background
     final updateInfo = await UpdateService.checkForUpdate();
     
     if (!mounted) return;
     
     if (updateInfo != null) {
       debugPrint('SplashScreen: Update available: ${updateInfo.version}');
-      await UpdateService.showUpdateDialog(context, updateInfo);
+      // Show update dialog after navigation
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          UpdateService.showUpdateDialog(context, updateInfo);
+        }
+      });
     }
     
     if (!mounted) return;

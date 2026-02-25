@@ -65,6 +65,7 @@ void _initializeNotificationsInBackground() async {
     // Reschedule all habit notifications
     debugPrint('Rescheduling habit notifications...');
     final storageService = StorageService();
+    await storageService.initialize();
     final habitRepository = HabitRepository(storageService);
     await habitRepository.rescheduleAllNotifications();
     debugPrint('Habit notifications rescheduled successfully');

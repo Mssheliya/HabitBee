@@ -157,7 +157,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
       if (_selectedView == DetailViewType.daily) {
         final today = DateTime(now.year, now.month, now.day);
         final todayProgress = progressMap[today] ?? 0.0;
-        totalCompleted = todayProgress.round();
+        totalCompleted = (todayProgress * widget.habit.frequencyPerDay).round();
       } else {
         totalCompleted = completedDays;
       }

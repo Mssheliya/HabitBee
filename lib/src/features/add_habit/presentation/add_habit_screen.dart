@@ -6,6 +6,7 @@ import 'package:habit_bee/src/core/constants/app_constants.dart';
 import 'package:habit_bee/src/core/services/notification_service.dart';
 import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/widgets/material_loading_indicator.dart';
+import 'package:habit_bee/src/core/utils/motivational_messages.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final Habit? habit;
@@ -157,33 +158,29 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           debugPrint('AddHabitScreen: Scheduling notification...');
           final notificationService = NotificationService();
           
-          // Cancel any existing notification first
-          await notificationService.cancelNotification(savedHabit.notificationId);
+          // Try to cancel any existing notification (ignore errors)
+          try {
+            await notificationService.cancelNotification(savedHabit.notificationId);
+          } catch (e) {
+            debugPrint('AddHabitScreen: Cancel notification error (ignoring): $e');
+          }
           
           // Schedule new notification
           await notificationService.scheduleNotification(
             id: savedHabit.notificationId,
-            title: 'Habit Reminder',
-            body: 'Time to complete: ${savedHabit.name}',
+            title: MotivationalMessages.getTitle(savedHabit.category),
+            body: MotivationalMessages.getMessage(savedHabit.category, savedHabit.name),
             scheduledDate: reminderDateTime,
             repeatDays: _repeatDays,
           );
           
           debugPrint('AddHabitScreen: Notification scheduled successfully');
-          
-          // Verify it was scheduled
-          final pendingNotifications = await notificationService.getPendingNotifications();
-          debugPrint('AddHabitScreen: Pending notifications: ${pendingNotifications.length}');
-          for (final notification in pendingNotifications) {
-            debugPrint('AddHabitScreen: - ID: ${notification.id}, Title: ${notification.title}');
-          }
         } catch (e) {
           debugPrint('AddHabitScreen: Notification scheduling failed: $e');
-          // Show warning but don't fail the habit creation
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('Habit saved, but reminder could not be set: $e'),
+                content: Text('Habit saved, but reminder could not be set'),
                 backgroundColor: Colors.orange,
                 duration: const Duration(seconds: 3),
               ),

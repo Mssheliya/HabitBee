@@ -20,9 +20,37 @@ class NotificationService {
     
     tz.initializeTimeZones();
     
-    // Set local timezone
-    final String timeZoneName = DateTime.now().timeZoneName;
-    tz.setLocalLocation(tz.getLocation(timeZoneName));
+    // Set local timezone - use 'UTC' as fallback to avoid invalid timezone names
+    try {
+      final String timeZoneName = DateTime.now().timeZoneName;
+      // Only use timezone name if it's a valid IANA name (contains /)
+      if (timeZoneName.contains('/')) {
+        tz.setLocalLocation(tz.getLocation(timeZoneName));
+      } else {
+        // Common timezone name mappings
+        final Map<String, String> tzMapping = {
+          'IST': 'Asia/Kolkata',
+          'PST': 'America/Los_Angeles',
+          'EST': 'America/New_York',
+          'CST': 'America/Chicago',
+          'MST': 'America/Denver',
+          'GMT': 'Europe/London',
+          'BST': 'Europe/London',
+          'JST': 'Asia/Tokyo',
+          'CST_CHINA': 'Asia/Shanghai',
+        };
+        
+        if (tzMapping.containsKey(timeZoneName)) {
+          tz.setLocalLocation(tz.getLocation(tzMapping[timeZoneName]!));
+        } else {
+          // Default to UTC
+          tz.setLocalLocation(tz.getLocation('UTC'));
+        }
+      }
+    } catch (e) {
+      // Fallback to UTC
+      tz.setLocalLocation(tz.getLocation('UTC'));
+    }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
@@ -44,8 +72,26 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTap,
     );
 
+    // Create notification channel for Android (required for Android 8.0+)
+    if (Platform.isAndroid) {
+      await _createNotificationChannel();
+    }
+
     _isInitialized = true;
     debugPrint('NotificationService: Initialized successfully');
+  }
+
+  Future<void> _createNotificationChannel() async {
+    const AndroidNotificationChannel channel = AndroidNotificationChannel(
+      'habit_reminders',
+      'Habit Reminders',
+      description: 'Reminders for your daily habits',
+      importance: Importance.max,
+    );
+
+    await _notificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(channel);
   }
 
   Future<bool> requestPermissions() async {
@@ -80,6 +126,7 @@ class NotificationService {
   }
 
   Future<void> showTestNotification() async {
+    await initialize();
     await showImmediateNotification(
       title: 'Test Notification',
       body: 'If you see this, notifications are working!',
@@ -103,6 +150,8 @@ class NotificationService {
     required DateTime scheduledDate,
     List<bool>? repeatDays,
   }) async {
+    await initialize();
+    
     debugPrint('NotificationService: Scheduling notification #$id');
     debugPrint('NotificationService: Title: $title');
     debugPrint('NotificationService: Scheduled for: $scheduledDate');
@@ -145,48 +194,118 @@ class NotificationService {
       iOS: iosDetails,
     );
 
-    // Ensure the date is in the future
-    var targetDate = scheduledDate;
     final now = DateTime.now();
-    if (targetDate.isBefore(now)) {
-      targetDate = targetDate.add(const Duration(days: 1));
-      debugPrint('NotificationService: Adjusted to tomorrow: $targetDate');
-    }
 
-    final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(
-      targetDate,
-      tz.local,
-    );
+    // If repeatDays is provided and has any true values, schedule separate notifications for each day
+    if (repeatDays != null && repeatDays.contains(true)) {
+      for (int i = 0; i < 7; i++) {
+        if (repeatDays[i]) {
+          // Calculate next occurrence of this day of week
+          var targetDate = _getNextDayOfWeek(scheduledDate, i);
+          
+          // If the calculated date is in the past, add a week
+          if (targetDate.isBefore(now)) {
+            targetDate = targetDate.add(const Duration(days: 7));
+          }
+          
+          final notificationId = id + i; // Unique ID for each day's notification
+          
+          final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(
+            targetDate,
+            tz.local,
+          );
 
-    try {
-      await _notificationsPlugin.zonedSchedule(
-        id,
-        title,
-        body,
-        scheduledTZDate,
-        notificationDetails,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: repeatDays != null && repeatDays.contains(true)
-            ? DateTimeComponents.dayOfWeekAndTime
-            : null,
+          try {
+            await _notificationsPlugin.zonedSchedule(
+              notificationId,
+              title,
+              body,
+              scheduledTZDate,
+              notificationDetails,
+              androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+              uiLocalNotificationDateInterpretation:
+                  UILocalNotificationDateInterpretation.absoluteTime,
+              matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
+            );
+            debugPrint('NotificationService: Scheduled notification #$notificationId for day index $i');
+          } catch (e) {
+            debugPrint('NotificationService: Error scheduling notification for day index $i: $e');
+          }
+        }
+      }
+      debugPrint('NotificationService: Successfully scheduled all repeat notifications for habit');
+    } else {
+      // Single notification (no repeat)
+      var targetDate = scheduledDate;
+      if (targetDate.isBefore(now)) {
+        targetDate = targetDate.add(const Duration(days: 1));
+        debugPrint('NotificationService: Adjusted to tomorrow: $targetDate');
+      }
+
+      final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(
+        targetDate,
+        tz.local,
       );
-      debugPrint('NotificationService: Successfully scheduled notification #$id');
-    } catch (e) {
-      debugPrint('NotificationService: Error scheduling notification: $e');
-      rethrow;
+
+      try {
+        await _notificationsPlugin.zonedSchedule(
+          id,
+          title,
+          body,
+          scheduledTZDate,
+          notificationDetails,
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+          uiLocalNotificationDateInterpretation:
+              UILocalNotificationDateInterpretation.absoluteTime,
+        );
+        debugPrint('NotificationService: Successfully scheduled notification #$id');
+      } catch (e) {
+        debugPrint('NotificationService: Error scheduling notification: $e');
+        rethrow;
+      }
     }
+  }
+
+  DateTime _getNextDayOfWeek(DateTime date, int dayIndex) {
+    // dayIndex: 0 = Monday, 6 = Sunday
+    // DateTime.weekday: 1 = Monday, 7 = Sunday
+    final currentWeekday = date.weekday;
+    final targetWeekday = dayIndex + 1; // Convert 0-6 to 1-7
+    
+    int daysToAdd = targetWeekday - currentWeekday;
+    if (daysToAdd <= 0) {
+      daysToAdd += 7; // Move to next week
+    }
+    
+    return DateTime(
+      date.year,
+      date.month,
+      date.day,
+      date.hour,
+      date.minute,
+    ).add(Duration(days: daysToAdd));
   }
 
   Future<void> cancelNotification(int id) async {
     debugPrint('NotificationService: Cancelling notification #$id');
-    await _notificationsPlugin.cancel(id);
+    try {
+      // Cancel the base notification and all 7 possible day-specific notifications
+      await _notificationsPlugin.cancel(id);
+      for (int i = 0; i < 7; i++) {
+        await _notificationsPlugin.cancel(id + i);
+      }
+    } catch (e) {
+      debugPrint('NotificationService: Error cancelling notification: $e');
+    }
   }
 
   Future<void> cancelAllNotifications() async {
     debugPrint('NotificationService: Cancelling all notifications');
-    await _notificationsPlugin.cancelAll();
+    try {
+      await _notificationsPlugin.cancelAll();
+    } catch (e) {
+      debugPrint('NotificationService: Error cancelling all notifications: $e');
+    }
   }
 
   Future<void> showImmediateNotification({
@@ -194,6 +313,8 @@ class NotificationService {
     required String body,
     String? payload,
   }) async {
+    await initialize();
+    
     // Check permissions first
     final hasPermission = await checkPermissions();
     if (!hasPermission) {
@@ -234,6 +355,11 @@ class NotificationService {
   }
 
   Future<List<PendingNotificationRequest>> getPendingNotifications() async {
-    return await _notificationsPlugin.pendingNotificationRequests();
+    try {
+      return await _notificationsPlugin.pendingNotificationRequests();
+    } catch (e) {
+      debugPrint('NotificationService: Error getting pending notifications: $e');
+      return [];
+    }
   }
 }
