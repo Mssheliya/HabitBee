@@ -53,7 +53,7 @@ class NotificationService {
     }
 
     const AndroidInitializationSettings initializationSettingsAndroid =
-        AndroidInitializationSettings('@mipmap/ic_launcher');
+        AndroidInitializationSettings('@mipmap/launcher_icon');
 
     const DarwinInitializationSettings initializationSettingsIOS =
         DarwinInitializationSettings(
@@ -116,8 +116,6 @@ class NotificationService {
     if (!Platform.isAndroid) return false;
     // Check Android version using Platform
     try {
-      final version = Platform.operatingSystemVersion;
-      // Parse version string to check if API level >= 31
       // For now, request permission on all Android devices to be safe
       return true;
     } catch (e) {

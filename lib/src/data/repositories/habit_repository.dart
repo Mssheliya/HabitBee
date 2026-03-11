@@ -69,6 +69,7 @@ class HabitRepository {
     final completion = await _storageService.getCompletionForDate(habitId, normalizedDate);
     final habit = await getHabit(habitId);
     final frequency = habit?.frequencyPerDay ?? 1;
+    bool becameCompletedToday = false;
     
     debugPrint('Repository: Current completion: ${completion != null ? 'count=${completion.completionCount}, completed=${completion.completed}' : 'null'}, frequency=$frequency');
     
@@ -82,6 +83,9 @@ class HabitRepository {
       );
       await _storageService.saveCompletion(newCompletion);
       debugPrint('Repository: Created new completion with count=1, completed=${frequency == 1}');
+      if (frequency == 1) {
+        becameCompletedToday = true;
+      }
     } else {
       // Completion exists
       if (completion.completed) {
@@ -97,10 +101,22 @@ class HabitRepository {
         if (isNowCompleted) {
           completion.completed = true;
           completion.completedAt = DateTime.now();
+          becameCompletedToday = true;
         }
         
         await _storageService.saveCompletion(completion);
         debugPrint('Repository: Updated completion count to ${completion.completionCount}, completed=${completion.completed}');
+      }
+    }
+
+    // If today's habit has just become fully completed, cancel its pending reminder
+    if (becameCompletedToday && habit != null && habit.reminderEnabled && habit.reminderTime != null) {
+      try {
+        final notificationService = NotificationService();
+        await notificationService.cancelNotification(habit.notificationId);
+        debugPrint('Repository: Cancelled notification for completed habit $habitId');
+      } catch (e) {
+        debugPrint('Repository: Error cancelling notification for completed habit $habitId: $e');
       }
     }
   }
