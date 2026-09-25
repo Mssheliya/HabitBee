@@ -1,7 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:hive/hive.dart';
+import 'package:habit_bee/src/core/theme/app_theme.dart';
 
 part 'habit.g.dart';
+
+// Tolerant parsers for legacy stored values (String/num instead of bool/int/DateTime)
+bool _hbBool(dynamic v, bool fallback) {
+  if (v is bool) return v;
+  if (v is String) {
+    final s = v.toLowerCase();
+    if (s == 'true') return true;
+    if (s == 'false') return false;
+  }
+  if (v is num) return v != 0;
+  return fallback;
+}
+
+int _hbInt(dynamic v, int fallback) {
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+DateTime _hbDate(dynamic v, DateTime fallback) {
+  if (v is DateTime) return v;
+  if (v is String) return DateTime.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+DateTime? _hbDateOrNull(dynamic v) {
+  if (v is DateTime) return v;
+  if (v is String) return DateTime.tryParse(v);
+  return null;
+}
 
 @HiveType(typeId: 0)
 class Habit extends HiveObject {
@@ -77,26 +108,45 @@ class Habit extends HiveObject {
       repeatDays: repeatDays ?? List.filled(7, true),
       createdAt: DateTime.now(),
       isArchived: false,
-      notificationId: DateTime.now().millisecondsSinceEpoch % 2147483647,
+      // Keep well below 2^31-1 so per-day reminder IDs (base + 0..6)
+      // never overflow the 32-bit notification ID space on Android.
+      notificationId: DateTime.now().millisecondsSinceEpoch % 2000000000,
       frequencyPerDay: frequencyPerDay,
     );
   }
 
   Color get color {
-    final colors = [
-      const Color(0xFFFFB7B2), // Soft Red
-      const Color(0xFFFFDAC1), // Peach
-      const Color(0xFFE2F0CB), // Soft Green
-      const Color(0xFFB5EAD7), // Mint
-      const Color(0xFFC7CEEA), // Soft Purple
-      const Color(0xFFF8B195), // Coral
-      const Color(0xFFF67280), // Pink
-      const Color(0xFFC06C84), // Mauve
-      const Color(0xFF6C5B7B), // Deep Purple
-      const Color(0xFF355C7D), // Navy Blue
-    ];
+    final colors = AppTheme.habitColorOptions;
     return colors[colorIndex % colors.length];
   }
+
+  /// Readable color for content drawn on top of [color].
+  Color get onColor =>
+      color.computeLuminance() > 0.45 ? const Color(0xFF1B1B1F) : Colors.white;
+
+  /// Deeper, muted variant of [color] (towards black) — used for icon circles
+  /// and completion circle fills so the vibrant accent stays on the icon/text.
+  Color get mutedColor => Color.lerp(color, Colors.black, 0.45)!;
+
+  // Cached Material 3 schemes generated from this habit's own selected color.
+  ColorScheme? _schemeLight;
+  ColorScheme? _schemeDark;
+
+  /// Material 3 color scheme generated from THIS habit's selected color.
+  /// The habit card derives every color from this scheme (calendar-style
+  /// card surface, add-button-style container and its on-color).
+  ColorScheme scheme(Brightness brightness) => brightness == Brightness.dark
+      ? (_schemeDark ??= ColorScheme.fromSeed(
+          seedColor: color, brightness: Brightness.dark))
+      : (_schemeLight ??= ColorScheme.fromSeed(
+          seedColor: color, brightness: Brightness.light));
+
+  /// Habit-tinted card background, same logic as the theme's card color
+  /// (used by the progress-page calendar / settings cards).
+  Color cardBackground(Brightness brightness) =>
+      brightness == Brightness.dark
+          ? scheme(brightness).surfaceContainerLow
+          : scheme(brightness).surfaceContainerHighest.withValues(alpha: 0.4);
 
   IconData get icon {
     final iconMap = {
@@ -122,6 +172,15 @@ class Habit extends HiveObject {
       'emoji_events': Icons.emoji_events,
     };
     return iconMap[iconName] ?? Icons.star;
+  }
+
+  /// Whether this habit is scheduled for the given date.
+  /// Reminder off → scheduled every day. Otherwise checks repeatDays
+  /// (index 0 = Monday, same indexing as repository stats logic).
+  bool isScheduledOn(DateTime date) {
+    if (!reminderEnabled) return true;
+    if (repeatDays.length != 7) return true;
+    return repeatDays[(date.weekday - 1) % 7];
   }
 
   Habit copyWith({

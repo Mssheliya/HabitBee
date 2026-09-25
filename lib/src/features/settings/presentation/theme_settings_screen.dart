@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/theme/theme_provider.dart';
-import 'package:habit_bee/src/data/models/app_settings.dart';
+import 'package:habit_bee/src/core/widgets/theme_color_circle.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
 
@@ -16,341 +16,385 @@ class _ThemeSettingsScreenState extends State<ThemeSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final currentColors = themeProvider.currentThemeColors;
+
+    final currentBrightness = themeProvider.themeMode == ThemeMode.dark
+        ? Brightness.dark
+        : (themeProvider.themeMode == ThemeMode.light
+            ? Brightness.light
+            : MediaQuery.platformBrightnessOf(context));
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: currentColors.primary,
-        foregroundColor: Colors.black,
-        title: const Text('Theme Settings'),
-        elevation: 0,
+        title: const Text('Theme & Appearance'),
+        centerTitle: true,
       ),
       body: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         children: [
           // Theme Mode Section
           _buildSectionTitle(theme, 'Theme Mode'),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Column(
-              children: [
-                SwitchListTile(
-                  title: const Text('Use System Theme'),
-                  subtitle: const Text('Follow device theme settings'),
-                  value: themeProvider.useSystemTheme,
-                  onChanged: (value) => themeProvider.setUseSystemTheme(value),
-                  secondary: const Icon(Icons.brightness_auto),
-                  activeColor: currentColors.primary,
-                ),
-                if (!themeProvider.useSystemTheme) ...[
-                  const Divider(height: 1),
-                  SwitchListTile(
-                    title: const Text('Dark Mode'),
-                    subtitle: const Text('Enable dark theme'),
-                    value: themeProvider.isDarkMode,
-                    onChanged: (value) => themeProvider.setDarkMode(value),
-                    secondary: const Icon(Icons.dark_mode),
-                    activeColor: currentColors.primary,
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Color Theme Section
-          _buildSectionTitle(theme, 'Color Theme'),
-          _buildThemeGrid(themeProvider, currentColors),
-          const SizedBox(height: 24),
-
-          // Custom Theme Section
-          if (themeProvider.themeType == AppThemeType.custom) ...[
-            _buildSectionTitle(theme, 'Custom Colors'),
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Column(
-                children: [
-                  ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: currentColors.primary,
-                        borderRadius: BorderRadius.circular(8),
+          _buildCard(
+            theme,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: SegmentedButton<ThemeMode>(
+                    segments: const [
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.system,
+                        label: Text('System'),
+                        icon: Icon(Icons.brightness_auto_rounded, size: 18),
                       ),
-                    ),
-                    title: const Text('Primary Color'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showColorPicker(context, themeProvider, true),
-                  ),
-                  const Divider(height: 1),
-                  ListTile(
-                    leading: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        color: currentColors.secondary,
-                        borderRadius: BorderRadius.circular(8),
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.light,
+                        label: Text('Light'),
+                        icon: Icon(Icons.light_mode_rounded, size: 18),
                       ),
-                    ),
-                    title: const Text('Secondary Color'),
-                    trailing: const Icon(Icons.chevron_right),
-                    onTap: () => _showColorPicker(context, themeProvider, false),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-          ],
-
-          // Font Scale Section
-          _buildSectionTitle(theme, 'Text Size'),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Icon(Icons.text_decrease, size: 20),
-                      Expanded(
-                        child: Slider(
-                          value: themeProvider.fontScale,
-                          min: 0.8,
-                          max: 1.4,
-                          divisions: 6,
-                          activeColor: currentColors.primary,
-                          onChanged: (value) => themeProvider.setFontScale(value),
-                        ),
+                      ButtonSegment<ThemeMode>(
+                        value: ThemeMode.dark,
+                        label: Text('Dark'),
+                        icon: Icon(Icons.dark_mode_rounded, size: 18),
                       ),
-                      const Icon(Icons.text_increase, size: 24),
                     ],
+                    selected: {themeProvider.themeMode},
+                    onSelectionChanged: (newSelection) {
+                      themeProvider.setThemeMode(newSelection.first);
+                    },
                   ),
-                  Center(
-                    child: Text(
-                      '${(themeProvider.fontScale * 100).toInt()}%',
-                      style: theme.textTheme.bodyMedium?.copyWith(
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Palette / Color Selection Grid
+          _buildSectionTitle(theme, 'Theme Color Palette'),
+          _buildCard(
+            theme,
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Select Seed Color',
+                      style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
+                    TextButton.icon(
+                      onPressed: () => _showCustomColorPicker(context, themeProvider),
+                      icon: const Icon(Icons.colorize_rounded, size: 16),
+                      label: const Text('Custom'),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 16),
+                child: GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 4,
+                    childAspectRatio: 0.82,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 12,
                   ),
-                  const SizedBox(height: 8),
-                  Center(
-                    child: Text(
-                      'Preview Text',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        fontSize: 16 * themeProvider.fontScale,
+                  itemCount: AppTheme.seedOptions.length,
+                  itemBuilder: (context, index) {
+                    final option = AppTheme.seedOptions[index];
+                    final isSelected = themeProvider.selectedSeedColor.toARGB32() ==
+                        option.seedColor.toARGB32();
+
+                    return ThemeColorCircle(
+                      seedColor: option.seedColor,
+                      name: option.name,
+                      isSelected: isSelected,
+                      brightness: currentBrightness,
+                      dynamicSchemeVariant: themeProvider.dynamicSchemeVariant,
+                      size: 48,
+                      onTap: () {
+                        themeProvider.setSelectedSeedColor(
+                          option.seedColor,
+                          legacyType: option.legacyType,
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Dynamic Scheme Variant Section
+          _buildSectionTitle(theme, 'Material 3 Dynamic Scheme Variant'),
+          _buildCard(
+            theme,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tuning Algorithm',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Preview Section
-          _buildSectionTitle(theme, 'Preview'),
-          Card(
-            elevation: 2,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {},
-                    child: const Text('Primary Button'),
-                  ),
-                  const SizedBox(height: 12),
-                  OutlinedButton(
-                    onPressed: () {},
-                    child: const Text('Outlined Button'),
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () {},
-                    child: const Text('Text Button'),
-                  ),
-                  const SizedBox(height: 16),
-                  const TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Text Field Preview',
-                      prefixIcon: Icon(Icons.edit),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Defines how tones and saturation are harmonized from your seed color.',
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: AppTheme.variantOptions.map((opt) {
+                        final isSelected =
+                            themeProvider.dynamicSchemeVariant == opt.variant;
+                        return ChoiceChip(
+                          label: Text(
+                            opt.name,
+                            style: TextStyle(
+                              color: isSelected
+                                  ? colorScheme.onPrimaryContainer
+                                  : colorScheme.onSurfaceVariant,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: colorScheme.primaryContainer,
+                          backgroundColor: colorScheme.surfaceContainerHighest,
+                          side: BorderSide.none,
+                          showCheckmark: false,
+                          onSelected: (selected) {
+                            if (selected) {
+                              themeProvider.setDynamicSchemeVariant(opt.variant);
+                            }
+                          },
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
           ),
+          const SizedBox(height: 20),
+
+          // Font Scale Section
+          _buildSectionTitle(theme, 'Text Scale'),
+          _buildCard(
+            theme,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.text_decrease_rounded, size: 20),
+                        Expanded(
+                          child: Slider(
+                            value: themeProvider.fontScale,
+                            min: 0.8,
+                            max: 1.3,
+                            divisions: 5,
+                            onChanged: (value) => themeProvider.setFontScale(value),
+                          ),
+                        ),
+                        const Icon(Icons.text_increase_rounded, size: 24),
+                      ],
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Size: ${(themeProvider.fontScale * 100).toInt()}%',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          'HabitBee preview text',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+
+          // Live Component Preview Section
+          _buildSectionTitle(theme, 'Live Theme Preview'),
+          _buildCard(
+            theme,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: FilledButton(
+                            onPressed: () => themeProvider.triggerHaptic(),
+                            child: const Text('Filled Button'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: FilledButton.tonal(
+                            onPressed: () => themeProvider.triggerHaptic(),
+                            child: const Text('Tonal Button'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => themeProvider.triggerHaptic(),
+                            child: const Text('Outlined'),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextButton(
+                            onPressed: () => themeProvider.triggerHaptic(),
+                            child: const Text('Text Button'),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    const TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Material 3 input field',
+                        prefixIcon: Icon(Icons.edit_note_rounded),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        Chip(
+                          avatar: const Icon(Icons.check_circle_rounded, size: 18),
+                          label: const Text('Chip'),
+                        ),
+                        FloatingActionButton.small(
+                          heroTag: 'preview_fab',
+                          onPressed: () => themeProvider.triggerHaptic(),
+                          child: const Icon(Icons.add_rounded),
+                        ),
+                        Switch(
+                          value: true,
+                          onChanged: (_) {},
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 36),
         ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(ThemeData theme, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
-      child: Text(
-        title,
-        style: theme.textTheme.titleSmall?.copyWith(
-          color: theme.colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildThemeGrid(ThemeProvider themeProvider, ThemeColors currentColors) {
-    final themes = AppTheme.themeColors.entries.toList();
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            childAspectRatio: 0.85,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: themes.length,
-          itemBuilder: (context, index) {
-            final entry = themes[index];
-            final isSelected = themeProvider.themeType == entry.key;
-            final colors = entry.value;
-
-            return InkWell(
-              onTap: () => themeProvider.setThemeType(entry.key),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? currentColors.primary : Colors.transparent,
-                    width: 3,
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(24),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.primary.withOpacity(0.4),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: isSelected
-                          ? const Icon(Icons.check, color: Colors.white)
-                          : null,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      colors.name,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? currentColors.primary : null,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
-    );
-  }
-
-  void _showColorPicker(BuildContext context, ThemeProvider themeProvider, bool isPrimary) {
-    Color pickerColor = isPrimary
-        ? Color(themeProvider.settings.customPrimaryColor ?? AppTheme.primaryYellow.value)
-        : Color(themeProvider.settings.customSecondaryColor ?? AppTheme.darkYellow.value);
+  void _showCustomColorPicker(BuildContext context, ThemeProvider themeProvider) {
+    Color pickerColor = themeProvider.selectedSeedColor;
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text(isPrimary ? 'Pick Primary Color' : 'Pick Secondary Color'),
+          title: const Text('Pick Custom Seed Color'),
           content: SingleChildScrollView(
             child: ColorPicker(
               pickerColor: pickerColor,
               onColorChanged: (color) {
                 pickerColor = color;
               },
-              pickerAreaHeightPercent: 0.8,
+              pickerAreaHeightPercent: 0.7,
               enableAlpha: false,
               displayThumbColor: true,
               paletteType: PaletteType.hsvWithHue,
-              pickerAreaBorderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(2.0),
-                topRight: Radius.circular(2.0),
-              ),
+              pickerAreaBorderRadius: const BorderRadius.all(Radius.circular(16)),
               hexInputBar: true,
             ),
           ),
           actions: <Widget>[
             TextButton(
               child: const Text('Cancel'),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
+              onPressed: () => Navigator.of(context).pop(),
             ),
-            TextButton(
-              child: const Text('Select'),
+            FilledButton(
+              child: const Text('Select Color'),
               onPressed: () {
-                if (isPrimary) {
-                  themeProvider.setCustomColors(
-                    pickerColor,
-                    Color(themeProvider.settings.customSecondaryColor ?? AppTheme.darkYellow.value),
-                  );
-                } else {
-                  themeProvider.setCustomColors(
-                    Color(themeProvider.settings.customPrimaryColor ?? AppTheme.primaryYellow.value),
-                    pickerColor,
-                  );
-                }
+                themeProvider.setSelectedSeedColor(pickerColor);
                 Navigator.of(context).pop();
               },
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildSectionTitle(ThemeData theme, String title) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 6, bottom: 8),
+      child: Text(
+        title,
+        style: theme.textTheme.titleSmall?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCard(ThemeData theme, {required List<Widget> children}) {
+    // Same card background color logic as the settings page GroupedCards
+    final cardColor = theme.cardTheme.color ??
+        (theme.brightness == Brightness.dark
+            ? theme.colorScheme.surfaceContainerLow
+            : theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.4));
+    return Container(
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
     );
   }
 }

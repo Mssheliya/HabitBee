@@ -29,7 +29,7 @@ class UpdateService {
       final response = await http.get(
         Uri.parse('https://api.github.com/repos/$_githubUser/$_githubRepo/releases/latest'),
         headers: {'Accept': 'application/vnd.github+json'},
-      );
+      ).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);

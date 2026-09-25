@@ -3,11 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:habit_bee/src/data/models/habit.dart';
 import 'package:habit_bee/src/data/repositories/habit_repository.dart';
+import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/theme/theme_provider.dart';
-import 'package:habit_bee/src/core/constants/app_constants.dart';
 import 'package:habit_bee/src/core/widgets/material_loading_indicator.dart';
 import 'package:habit_bee/src/features/home/presentation/widgets/habit_tile.dart';
 import 'package:habit_bee/src/features/add_habit/presentation/add_habit_screen.dart';
+import 'package:habit_bee/src/features/habit_detail/presentation/habit_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -22,10 +23,27 @@ class HomeScreenState extends State<HomeScreen> {
   bool _isLoading = true;
   String? _error;
   String? _selectedCategory;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
 
   List<Habit> get _filteredHabits {
-    if (_selectedCategory == null) return _habits;
-    return _habits.where((habit) => habit.category == _selectedCategory).toList();
+    var list = _habits;
+    if (_selectedCategory != null) {
+      list = list
+          .where((habit) => habit.category == _selectedCategory)
+          .toList();
+    }
+    if (_searchQuery.trim().isNotEmpty) {
+      final q = _searchQuery.trim().toLowerCase();
+      list = list
+          .where(
+            (h) =>
+                h.name.toLowerCase().contains(q) ||
+                h.category.toLowerCase().contains(q),
+          )
+          .toList();
+    }
+    return list;
   }
 
   List<String> get _availableCategories {
@@ -38,10 +56,20 @@ class HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     // Normalize the initial date to remove time component
-    _selectedDate = DateTime(_selectedDate.year, _selectedDate.month, _selectedDate.day);
+    _selectedDate = DateTime(
+      _selectedDate.year,
+      _selectedDate.month,
+      _selectedDate.day,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadHabits();
     });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   // Public method to refresh habits from outside
@@ -56,10 +84,10 @@ class HomeScreenState extends State<HomeScreen> {
         _isLoading = true;
         _error = null;
       });
-      
+
       final repository = Provider.of<HabitRepository>(context, listen: false);
       final habits = await repository.getActiveHabits();
-      
+
       if (mounted) {
         setState(() {
           _habits = habits;
@@ -97,45 +125,40 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _editHabit(Habit habit) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => AddHabitScreen(habit: habit),
-      ),
-    ).then((_) => _loadHabits());
+  void _openHabitDetail(Habit habit) {
+    Navigator.of(context)
+        .push(
+          MaterialPageRoute(builder: (_) => HabitDetailScreen(habit: habit)),
+        )
+        .then((_) => _loadHabits());
   }
 
   void _addNewHabit() {
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AddHabitScreen(),
-      ),
-    ).then((result) {
-      if (result == true) {
-        _loadHabits();
-      }
-    });
+    Navigator.of(context)
+        .push(MaterialPageRoute(builder: (_) => const AddHabitScreen()))
+        .then((result) {
+          if (result == true) {
+            _loadHabits();
+          }
+        });
   }
 
   @override
   Widget build(BuildContext context) {
-    debugPrint('HomeScreen: building, isLoading=$_isLoading, habits=${_habits.length}');
+    debugPrint(
+      'HomeScreen: building, isLoading=$_isLoading, habits=${_habits.length}',
+    );
     final theme = Theme.of(context);
-    final isToday = DateTime.now().difference(_selectedDate).inDays == 0;
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(theme, isToday, themeProvider),
+            _buildTopSearchBar(theme),
             const SizedBox(height: 16),
             if (_availableCategories.length > 1) _buildCategoryFilter(theme),
             const SizedBox(height: 16),
-            Expanded(
-              child: _buildBody(theme),
-            ),
+            Expanded(child: _buildBody(theme)),
           ],
         ),
       ),
@@ -160,10 +183,7 @@ class HomeScreenState extends State<HomeScreen> {
           children: [
             const Icon(Icons.error_outline, size: 60, color: Colors.red),
             const SizedBox(height: 16),
-            Text(
-              'Error loading habits',
-              style: theme.textTheme.titleMedium,
-            ),
+            Text('Error loading habits', style: theme.textTheme.titleMedium),
             const SizedBox(height: 8),
             Text(
               _error!,
@@ -171,10 +191,7 @@ class HomeScreenState extends State<HomeScreen> {
               style: theme.textTheme.bodySmall,
             ),
             const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadHabits,
-              child: const Text('Retry'),
-            ),
+            ElevatedButton(onPressed: _loadHabits, child: const Text('Retry')),
           ],
         ),
       );
@@ -234,38 +251,173 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildHeader(ThemeData theme, bool isToday, ThemeProvider themeProvider) {
+  Widget _buildTopSearchBar(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
+    final isDark = theme.brightness == Brightness.dark;
+    final now = DateTime.now();
+    final dayStr = DateFormat('d').format(now);
+    final monthStr = DateFormat('MMM').format(now).toUpperCase();
+
+    // Date number keeps the DARK theme's tertiary tone in BOTH themes —
+    // the light theme does not switch it to the darker light-mode tone.
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final dateNumberColor = AppTheme.generateColorScheme(
+      seedColor: AppTheme.getSeedColor(themeProvider.settings),
+      brightness: Brightness.dark,
+      variant: themeProvider.dynamicSchemeVariant,
+    ).tertiary;
+
+    // Progress page calendar background logic:
+    final searchBarBg =
+        theme.cardTheme.color ??
+        (isDark
+            ? colorScheme.surfaceContainerLow
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4));
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                isToday ? 'Today' : DateFormat('EEEE').format(_selectedDate),
-                style: theme.textTheme.displaySmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+          // Search bar container
+          Expanded(
+            child: Container(
+              height: 56,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: searchBarBg,
+                borderRadius: BorderRadius.circular(28),
               ),
-              Text(
-                DateFormat('MMM d, yyyy').format(_selectedDate),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              child: Row(
+                children: [
+                  // Left side square date badge (pitch black)
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: Colors.black,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: colorScheme.primaryContainer,
+                        width: 4,
+                      ),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          dayStr,
+                          style: TextStyle(
+                            color: dateNumberColor,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 14,
+                            height: 1.1,
+                          ),
+                        ),
+                        const SizedBox(height: 1),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 5,
+                            vertical: 1,
+                          ),
+                          decoration: BoxDecoration(
+                            color: colorScheme.primaryContainer,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: colorScheme.primaryContainer,
+                              width: 1,
+                            ),
+                          ),
+                          child: Text(
+                            monthStr,
+                            style: TextStyle(
+                              color: Colors.black,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 8,
+                              letterSpacing: 0.5,
+                              height: 1.1,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Search text input
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setState(() {
+                          _searchQuery = value;
+                        });
+                      },
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontSize: 16,
+                      ),
+                      decoration: InputDecoration(
+                        filled: false,
+                        fillColor: Colors.transparent,
+                        hintText: 'Search habits',
+                        hintStyle: theme.textTheme.bodyMedium?.copyWith(
+                          color: colorScheme.onSurfaceVariant.withValues(
+                            alpha: 0.7,
+                          ),
+                          fontSize: 16,
+                        ),
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                  if (_searchQuery.isNotEmpty)
+                    GestureDetector(
+                      onTap: () {
+                        _searchController.clear();
+                        setState(() {
+                          _searchQuery = '';
+                        });
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: Icon(
+                          Icons.close_rounded,
+                          size: 18,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  const SizedBox(width: 6),
+                ],
               ),
-            ],
-          ),
-          IconButton(
-            onPressed: () => themeProvider.toggleTheme(),
-            icon: Icon(
-              themeProvider.isDarkMode
-                  ? Icons.light_mode_rounded
-                  : Icons.dark_mode_rounded,
-              color: theme.colorScheme.onSurface,
             ),
-            tooltip: 'Toggle Theme',
+          ),
+          const SizedBox(width: 12),
+          // Right side Add Habit Button (tertiary color logic)
+          GestureDetector(
+            onTap: () {
+              Provider.of<ThemeProvider>(
+                context,
+                listen: false,
+              ).triggerHaptic();
+              _addNewHabit();
+            },
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: colorScheme.tertiaryContainer,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(
+                Icons.add_rounded,
+                color: colorScheme.onTertiaryContainer,
+                size: 28,
+              ),
+            ),
           ),
         ],
       ),
@@ -273,121 +425,103 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildCategoryFilter(ThemeData theme) {
-    return Container(
-      height: 56,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
+    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
+    final colorScheme = theme.colorScheme;
+
+    Widget buildPill({
+      required String label,
+      required bool isSelected,
+      IconData? icon,
+      required VoidCallback onTap,
+    }) {
+      return Padding(
+        padding: const EdgeInsets.only(right: 8),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () {
+              themeProvider.triggerHaptic();
+              onTap();
+            },
+            borderRadius: BorderRadius.circular(28),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? colorScheme.primary
+                    : colorScheme.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: isSelected
+                      ? colorScheme.primary
+                      : colorScheme.outlineVariant.withValues(alpha: 0.6),
+                  width: 1.2,
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 17,
+                      color: isSelected
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: isSelected
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                      color: isSelected
+                          ? colorScheme.onPrimary
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: 44,
       child: ListView.builder(
         scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
         itemCount: _availableCategories.length + 1,
         itemBuilder: (context, index) {
           if (index == 0) {
-            // All categories chip
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                selected: _selectedCategory == null,
-                showCheckmark: false,
-                avatar: _selectedCategory == null
-                    ? Icon(
-                        Icons.check_circle,
-                        color: theme.colorScheme.onPrimary,
-                        size: 18,
-                      )
-                    : Icon(
-                        Icons.apps_rounded,
-                        color: theme.colorScheme.onSurfaceVariant,
-                        size: 18,
-                      ),
-                label: const Text('All'),
-                labelStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: _selectedCategory == null
-                      ? theme.colorScheme.onPrimary
-                      : theme.colorScheme.onSurfaceVariant,
-                ),
-                backgroundColor: theme.colorScheme.surfaceContainerHighest,
-                selectedColor: theme.colorScheme.primary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                elevation: _selectedCategory == null ? 2 : 0,
-                onSelected: (_) => setState(() => _selectedCategory = null),
-              ),
+            return buildPill(
+              label: 'All',
+              icon: _selectedCategory == null
+                  ? Icons.check_rounded
+                  : Icons.apps_rounded,
+              isSelected: _selectedCategory == null,
+              onTap: () => setState(() => _selectedCategory = null),
             );
           }
 
           final category = _availableCategories[index - 1];
           final isSelected = _selectedCategory == category;
-          final categoryColor = _getCategoryColor(category, theme);
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              child: FilterChip(
-                selected: isSelected,
-                showCheckmark: false,
-                avatar: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white : categoryColor,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                label: Text(category),
-                labelStyle: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : theme.colorScheme.onSurface,
-                ),
-                backgroundColor: categoryColor.withOpacity(0.15),
-                selectedColor: categoryColor,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                elevation: isSelected ? 3 : 0,
-                shadowColor: isSelected ? categoryColor.withOpacity(0.5) : null,
-                side: BorderSide(
-                  color: isSelected
-                      ? categoryColor
-                      : categoryColor.withOpacity(0.3),
-                  width: isSelected ? 0 : 1.5,
-                ),
-                onSelected: (_) => setState(() => _selectedCategory = category),
-              ),
-            ),
+          return buildPill(
+            label: category,
+            icon: isSelected ? Icons.check_rounded : null,
+            isSelected: isSelected,
+            onTap: () => setState(() => _selectedCategory = category),
           );
         },
       ),
     );
-  }
-
-  Color _getCategoryColor(String category, ThemeData theme) {
-    switch (category.toLowerCase()) {
-      case 'health':
-        return const Color(0xFF4CAF50);
-      case 'fitness':
-        return const Color(0xFFFF5722);
-      case 'productivity':
-        return const Color(0xFF2196F3);
-      case 'learning':
-        return const Color(0xFF9C27B0);
-      case 'mindfulness':
-        return const Color(0xFF00BCD4);
-      case 'social':
-        return const Color(0xFFFF9800);
-      case 'creativity':
-        return const Color(0xFFE91E63);
-      case 'finance':
-        return const Color(0xFF795548);
-      case 'reading':
-        return const Color(0xFF673AB7);  // Deep Purple
-      case 'writing':
-        return const Color(0xFF607D8B);  // Blue Grey
-      default:
-        return theme.colorScheme.primary;
-    }
   }
 
   Widget _buildHabitList() {
@@ -404,7 +538,7 @@ class HomeScreenState extends State<HomeScreen> {
             habit: habit,
             date: _selectedDate,
             onToggle: () => _toggleHabit(habit),
-            onEdit: () => _editHabit(habit),
+            onTap: () => _openHabitDetail(habit),
           );
         },
       ),

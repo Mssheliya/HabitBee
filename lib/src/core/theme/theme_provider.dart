@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:habit_bee/src/core/theme/app_theme.dart';
@@ -20,6 +19,7 @@ class ThemeProvider extends ChangeNotifier {
   AppThemeType get themeType => _settings.themeType;
   double get fontScale => _settings.fontScale;
   bool get useSystemTheme => _settings.useSystemTheme;
+  bool get hapticFeedbackEnabled => _settings.hapticFeedbackEnabled;
 
   ThemeMode get themeMode {
     if (_settings.useSystemTheme) {
@@ -27,6 +27,11 @@ class ThemeProvider extends ChangeNotifier {
     }
     return _settings.isDarkMode ? ThemeMode.dark : ThemeMode.light;
   }
+
+  DynamicSchemeVariant get dynamicSchemeVariant =>
+      AppTheme.getDynamicSchemeVariant(_settings);
+
+  Color get selectedSeedColor => AppTheme.getSeedColor(_settings);
 
   ThemeData get theme => AppTheme.getLightTheme(_settings);
   ThemeData get darkTheme => AppTheme.getDarkTheme(_settings);
@@ -54,29 +59,56 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> toggleTheme() async {
+  /// Trigger subtle haptic feedback if enabled in settings
+  void triggerHaptic() {
+    if (_settings.hapticFeedbackEnabled) {
+      HapticFeedback.selectionClick();
+    }
+  }
+
+  /// Trigger slightly stronger haptic feedback (for habit completion or major actions)
+  void triggerMediumHaptic() {
+    if (_settings.hapticFeedbackEnabled) {
+      HapticFeedback.mediumImpact();
+    }
+  }
+
+  Future<void> setThemeMode(ThemeMode mode) async {
+    triggerHaptic();
     try {
-      _settings = _settings.copyWith(isDarkMode: !_settings.isDarkMode);
+      switch (mode) {
+        case ThemeMode.system:
+          _settings = _settings.copyWith(useSystemTheme: true);
+          break;
+        case ThemeMode.dark:
+          _settings = _settings.copyWith(useSystemTheme: false, isDarkMode: true);
+          break;
+        case ThemeMode.light:
+          _settings = _settings.copyWith(useSystemTheme: false, isDarkMode: false);
+          break;
+      }
       await _storageService.saveSettings(_settings);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error toggling theme: $e');
+      debugPrint('Error setting theme mode: $e');
     }
   }
 
   Future<void> setDarkMode(bool value) async {
-    if (_settings.isDarkMode == value) return;
+    if (_settings.isDarkMode == value && !_settings.useSystemTheme) return;
+    triggerHaptic();
     try {
-      _settings = _settings.copyWith(isDarkMode: value);
+      _settings = _settings.copyWith(isDarkMode: value, useSystemTheme: false);
       await _storageService.saveSettings(_settings);
       notifyListeners();
     } catch (e) {
-      debugPrint('Error setting theme: $e');
+      debugPrint('Error setting dark mode: $e');
     }
   }
 
   Future<void> setUseSystemTheme(bool value) async {
     if (_settings.useSystemTheme == value) return;
+    triggerHaptic();
     try {
       _settings = _settings.copyWith(useSystemTheme: value);
       await _storageService.saveSettings(_settings);
@@ -86,10 +118,74 @@ class ThemeProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> setThemeType(AppThemeType type) async {
-    if (_settings.themeType == type) return;
+  Future<void> setSelectedSeedColor(Color color, {AppThemeType? legacyType}) async {
+    triggerHaptic();
     try {
-      _settings = _settings.copyWith(themeType: type);
+      _settings = _settings.copyWith(
+        selectedColorSeed: color.toARGB32(),
+        themeType: legacyType ?? _settings.themeType,
+        customPrimaryColor: color.toARGB32(),
+      );
+      await _storageService.saveSettings(_settings);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting seed color: $e');
+    }
+  }
+
+  Future<void> setDynamicSchemeVariant(DynamicSchemeVariant variant) async {
+    if (_settings.dynamicSchemeVariantIndex == variant.index) return;
+    triggerHaptic();
+    try {
+      _settings = _settings.copyWith(
+        dynamicSchemeVariantIndex: variant.index,
+      );
+      await _storageService.saveSettings(_settings);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting scheme variant: $e');
+    }
+  }
+
+  Future<void> setHapticFeedbackEnabled(bool value) async {
+    if (_settings.hapticFeedbackEnabled == value) return;
+    if (value) {
+      HapticFeedback.lightImpact();
+    }
+    try {
+      _settings = _settings.copyWith(hapticFeedbackEnabled: value);
+      await _storageService.saveSettings(_settings);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error setting haptic feedback: $e');
+    }
+  }
+
+  Future<void> toggleTheme() async {
+    triggerHaptic();
+    try {
+      _settings = _settings.copyWith(
+        isDarkMode: !_settings.isDarkMode,
+        useSystemTheme: false,
+      );
+      await _storageService.saveSettings(_settings);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error toggling theme: $e');
+    }
+  }
+
+  Future<void> setThemeType(AppThemeType type) async {
+    triggerHaptic();
+    try {
+      final seedOpt = AppTheme.seedOptions.firstWhere(
+        (o) => o.legacyType == type,
+        orElse: () => AppTheme.seedOptions.first,
+      );
+      _settings = _settings.copyWith(
+        themeType: type,
+        selectedColorSeed: seedOpt.seedColor.toARGB32(),
+      );
       await _storageService.saveSettings(_settings);
       notifyListeners();
     } catch (e) {
@@ -98,11 +194,13 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   Future<void> setCustomColors(Color primary, [Color? secondary]) async {
+    triggerHaptic();
     try {
       _settings = _settings.copyWith(
         themeType: AppThemeType.custom,
-        customPrimaryColor: primary.value,
-        customSecondaryColor: secondary?.value,
+        selectedColorSeed: primary.toARGB32(),
+        customPrimaryColor: primary.toARGB32(),
+        customSecondaryColor: secondary?.toARGB32(),
       );
       await _storageService.saveSettings(_settings);
       notifyListeners();
@@ -123,10 +221,17 @@ class ThemeProvider extends ChangeNotifier {
   }
 
   ThemeColors get currentThemeColors {
-    return AppTheme.getThemeColors(
-      _settings.themeType,
-      customPrimary: _settings.customPrimaryColor,
-      customSecondary: _settings.customSecondaryColor,
+    final seed = selectedSeedColor;
+    final colorScheme = ColorScheme.fromSeed(
+      seedColor: seed,
+      brightness: isDarkMode ? Brightness.dark : Brightness.light,
+      dynamicSchemeVariant: dynamicSchemeVariant,
+    );
+    return ThemeColors(
+      primary: colorScheme.primary,
+      secondary: colorScheme.secondary,
+      light: colorScheme.primaryContainer,
+      name: _settings.themeType.name,
     );
   }
 

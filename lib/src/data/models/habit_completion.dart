@@ -2,6 +2,36 @@ import 'package:hive/hive.dart';
 
 part 'habit_completion.g.dart';
 
+// Tolerant parsers for legacy stored values (String/num instead of bool/int/DateTime)
+bool _hcBool(dynamic v, bool fallback) {
+  if (v is bool) return v;
+  if (v is String) {
+    final s = v.toLowerCase();
+    if (s == 'true') return true;
+    if (s == 'false') return false;
+  }
+  if (v is num) return v != 0;
+  return fallback;
+}
+
+int _hcInt(dynamic v, int fallback) {
+  if (v is num) return v.toInt();
+  if (v is String) return int.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+DateTime _hcDate(dynamic v, DateTime fallback) {
+  if (v is DateTime) return v;
+  if (v is String) return DateTime.tryParse(v) ?? fallback;
+  return fallback;
+}
+
+DateTime? _hcDateOrNull(dynamic v) {
+  if (v is DateTime) return v;
+  if (v is String) return DateTime.tryParse(v);
+  return null;
+}
+
 @HiveType(typeId: 1)
 class HabitCompletion extends HiveObject {
   @HiveField(0)
@@ -22,6 +52,10 @@ class HabitCompletion extends HiveObject {
   @HiveField(5)
   int completionCount;
 
+  /// Optional user note for this habit on this date.
+  @HiveField(6)
+  String? note;
+
   HabitCompletion({
     required this.id,
     required this.habitId,
@@ -29,6 +63,7 @@ class HabitCompletion extends HiveObject {
     this.completed = false,
     this.completedAt,
     this.completionCount = 0,
+    this.note,
   });
 
   factory HabitCompletion.create({
@@ -36,6 +71,7 @@ class HabitCompletion extends HiveObject {
     required DateTime date,
     bool completed = false,
     int completionCount = 0,
+    String? note,
   }) {
     // Normalize date to remove time component for consistent storage
     final normalizedDate = DateTime(date.year, date.month, date.day);
@@ -46,6 +82,7 @@ class HabitCompletion extends HiveObject {
       completed: completed,
       completedAt: completed ? DateTime.now() : null,
       completionCount: completionCount,
+      note: note,
     );
   }
 
@@ -57,6 +94,7 @@ class HabitCompletion extends HiveObject {
       'completed': completed,
       'completedAt': completedAt?.toIso8601String(),
       'completionCount': completionCount,
+      'note': note,
     };
   }
 
@@ -69,6 +107,7 @@ class HabitCompletion extends HiveObject {
       completedAt:
           json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
       completionCount: json['completionCount'] ?? 0,
+      note: json['note'],
     );
   }
 }

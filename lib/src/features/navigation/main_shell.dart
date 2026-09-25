@@ -3,14 +3,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/theme/theme_provider.dart';
+import 'package:habit_bee/src/core/widgets/donut_progress_icon.dart';
 import 'package:habit_bee/src/features/home/presentation/home_screen.dart';
-import 'package:habit_bee/src/features/analytics/presentation/analytics_screen.dart';
 import 'package:habit_bee/src/features/progress/presentation/progress_screen.dart';
 import 'package:habit_bee/src/features/settings/presentation/settings_screen.dart';
-import 'package:habit_bee/src/features/add_habit/presentation/add_habit_screen.dart';
+import 'package:habit_bee/src/core/services/update_service.dart';
 
 // Export state classes for MainShell
-export 'package:habit_bee/src/features/analytics/presentation/analytics_screen.dart' show AnalyticsScreenState;
 export 'package:habit_bee/src/features/progress/presentation/progress_screen.dart' show ProgressScreenState;
 
 class MainShell extends StatefulWidget {
@@ -24,51 +23,45 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   // Keys for screens to refresh when tabs are switched
   final GlobalKey<HomeScreenState> _homeKey = GlobalKey<HomeScreenState>();
-  final GlobalKey<AnalyticsScreenState> _analyticsKey = GlobalKey<AnalyticsScreenState>();
   final GlobalKey<ProgressScreenState> _progressKey = GlobalKey<ProgressScreenState>();
 
-  void _onItemTapped(int index) {
-    if (index == 2) {
-      _showAddHabitScreen();
-    } else {
-      setState(() {
-        _currentIndex = index;
-      });
-      
-      // Refresh the selected tab's data after frame is built
+  @override
+  void initState() {
+    super.initState();
+    _checkForUpdateInBackground();
+  }
+
+  Future<void> _checkForUpdateInBackground() async {
+    final updateInfo = await UpdateService.checkForUpdate();
+    if (updateInfo != null && mounted) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (index == 1) {
-          _analyticsKey.currentState?.refreshData();
-        } else if (index == 3) {
-          _progressKey.currentState?.refreshData();
+        if (mounted) {
+          UpdateService.showUpdateDialog(context, updateInfo);
         }
       });
     }
   }
 
-  Future<void> _showAddHabitScreen() async {
-    debugPrint('MainShell: Opening AddHabitScreen');
-    final result = await Navigator.of(context).push(
-      MaterialPageRoute(
-        builder: (_) => const AddHabitScreen(),
-      ),
-    );
-    
-    debugPrint('MainShell: AddHabitScreen returned: $result');
-    
-    // If habit was saved (result == true), refresh the home screen
-    if (result == true) {
-      debugPrint('MainShell: Refreshing home screen');
-      if (_homeKey.currentState != null) {
-        _homeKey.currentState!.refreshHabits();
+  void _onItemTapped(int index) {
+    if (_currentIndex == index) return;
+    setState(() {
+      _currentIndex = index;
+    });
+
+    // Refresh the selected tab's data after frame is built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (index == 0) {
+        _homeKey.currentState?.refreshHabits();
+      } else if (index == 1) {
+        _progressKey.currentState?.refreshData();
       }
-    }
+    });
   }
 
-  void _onPopInvoked(bool didPop) {
+  void _onPopInvoked(bool didPop, dynamic result) {
     if (didPop) return;
 
-    // If not on home tab, go to home tab first
+    // If not on habits tab, go to habits tab first
     if (_currentIndex != 0) {
       setState(() {
         _currentIndex = 0;
@@ -76,7 +69,7 @@ class _MainShellState extends State<MainShell> {
       return; // Don't exit app yet, user is redirected to home
     }
 
-    // On home tab - close app immediately on single press
+    // On habits tab - close app immediately on single press
     SystemNavigator.pop();
   }
 
@@ -84,20 +77,18 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
     final isDarkMode = themeProvider.isDarkMode;
-    
+
     debugPrint('MainShell: building with index $_currentIndex, darkMode=$isDarkMode');
-    
+
     return PopScope(
       canPop: false,
-      onPopInvoked: _onPopInvoked,
+      onPopInvokedWithResult: _onPopInvoked,
       child: Scaffold(
         backgroundColor: isDarkMode ? AppTheme.black : AppTheme.offWhite,
         body: IndexedStack(
           index: _currentIndex,
           children: [
             HomeScreen(key: _homeKey),
-            AnalyticsScreen(key: _analyticsKey),
-            const SizedBox.shrink(), // Placeholder for FAB
             ProgressScreen(key: _progressKey),
             const SettingsScreen(),
           ],
@@ -109,98 +100,111 @@ class _MainShellState extends State<MainShell> {
 
   Widget _buildBottomNavBar(bool isDarkMode) {
     final theme = Theme.of(context);
-    final bgColor = isDarkMode ? AppTheme.darkGrey : AppTheme.white;
-    final iconColor = isDarkMode ? AppTheme.lightGrey : AppTheme.mediumGrey;
-    final selectedColor = theme.colorScheme.primary;
+    final colorScheme = theme.colorScheme;
+    final cardBg = theme.cardTheme.color ??
+        (isDarkMode
+            ? colorScheme.surfaceContainerLow
+            : colorScheme.surfaceContainerHighest.withValues(alpha: 0.4));
+    final iconColor = colorScheme.onSurfaceVariant;
+    final selectedColor = colorScheme.primary;
 
     return Container(
-      height: 80,
+      height: 64,
       decoration: BoxDecoration(
-        color: bgColor,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
-          ),
-        ],
+        color: cardBg,
       ),
       child: SafeArea(
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            _buildNavItem(Icons.home_rounded, 'Home', 0, iconColor, selectedColor),
-            _buildNavItem(Icons.analytics_rounded, 'Analytics', 1, iconColor, selectedColor),
-            _buildCenterButton(),
-            _buildNavItem(Icons.trending_up_rounded, 'Progress', 3, iconColor, selectedColor),
-            _buildNavItem(Icons.settings_rounded, 'Settings', 4, iconColor, selectedColor),
+            _buildNavItem(
+              iconBuilder: (color) => Icon(Icons.home_rounded, color: color, size: 22),
+              label: 'Habits',
+              index: 0,
+              defaultColor: iconColor,
+              selectedColor: selectedColor,
+            ),
+            _buildNavItem(
+              iconBuilder: (color) => SegmentedDonutIcon(color: color, size: 22),
+              label: 'Progress',
+              index: 1,
+              defaultColor: iconColor,
+              selectedColor: selectedColor,
+            ),
+            _buildNavItem(
+              iconBuilder: (color) => Icon(Icons.settings_rounded, color: color, size: 22),
+              label: 'Settings',
+              index: 2,
+              defaultColor: iconColor,
+              selectedColor: selectedColor,
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildNavItem(IconData icon, String label, int index, Color defaultColor, Color selectedColor) {
+  Widget _buildNavItem({
+    required Widget Function(Color color) iconBuilder,
+    required String label,
+    required int index,
+    required Color defaultColor,
+    required Color selectedColor,
+  }) {
     final isSelected = _currentIndex == index;
-    
-    return GestureDetector(
-      onTap: () => _onItemTapped(index),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Theme.of(context).colorScheme.primary.withOpacity(0.2) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? selectedColor : defaultColor,
-              size: 24,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: isSelected ? selectedColor : defaultColor,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 12,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+    final colorScheme = Theme.of(context).colorScheme;
 
-  Widget _buildCenterButton() {
-    final theme = Theme.of(context);
     return GestureDetector(
-      onTap: _showAddHabitScreen,
-      child: Container(
-        width: 60,
-        height: 60,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [theme.colorScheme.primary, theme.colorScheme.secondary],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+      behavior: HitTestBehavior.opaque,
+      onTap: () {
+        Provider.of<ThemeProvider>(context, listen: false).triggerHaptic();
+        _onItemTapped(index);
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+        child: AnimatedScale(
+          duration: const Duration(milliseconds: 250),
+          curve: Curves.easeOutCubic,
+          scale: isSelected ? 1.0 : 0.92,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Pill indicator only on the icon
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                width: 58,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? colorScheme.secondaryContainer
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(15),
+                ),
+                child: Center(
+                  child: iconBuilder(
+                    isSelected ? colorScheme.onSecondaryContainer : defaultColor,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 2),
+              // Text label outside the pill
+              AnimatedDefaultTextStyle(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeInOut,
+                style: TextStyle(
+                  color: isSelected
+                      ? colorScheme.onSurface
+                      : colorScheme.onSurfaceVariant,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: 10.5,
+                  letterSpacing: 0.2,
+                ),
+                child: Text(label),
+              ),
+            ],
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: theme.colorScheme.primary.withOpacity(0.4),
-              blurRadius: 15,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: const Icon(
-          Icons.add,
-          color: AppTheme.black,
-          size: 32,
         ),
       ),
     );

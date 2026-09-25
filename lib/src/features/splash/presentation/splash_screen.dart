@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:habit_bee/src/features/navigation/main_shell.dart';
-import 'package:habit_bee/src/core/services/update_service.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,7 +23,7 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
     
     // Logo animation controller - faster
     _logoController = AnimationController(
-      duration: const Duration(milliseconds: 800),
+      duration: const Duration(milliseconds: 600),
       vsync: this,
     );
 
@@ -62,32 +61,18 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
 
   void _navigateToHome() async {
     if (_isNavigating || !mounted) return;
-    
+
     setState(() {
       _isNavigating = true;
     });
-    
-    debugPrint('SplashScreen: Checking for updates...');
-    
-    // Run update check in background
-    final updateInfo = await UpdateService.checkForUpdate();
-    
+
+    // Let the logo animation play out briefly before moving on.
+    await Future<void>.delayed(const Duration(milliseconds: 700));
+
     if (!mounted) return;
-    
-    if (updateInfo != null) {
-      debugPrint('SplashScreen: Update available: ${updateInfo.version}');
-      // Show update dialog after navigation
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          UpdateService.showUpdateDialog(context, updateInfo);
-        }
-      });
-    }
-    
-    if (!mounted) return;
-    
+
     debugPrint('SplashScreen: Navigating to MainShell');
-    
+
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) => const MainShell(),
@@ -114,9 +99,9 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    
+
     return Scaffold(
-      backgroundColor: colorScheme.primary,
+      backgroundColor: theme.scaffoldBackgroundColor,
       body: Center(
         child: AnimatedBuilder(
           animation: Listenable.merge([_logoController, _loaderController]),
@@ -128,16 +113,16 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Animated Logo with Material Design
+                    // Animated Logo – primaryContainer chip, primary accent
                     Container(
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.primaryContainer,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.15),
+                            color: colorScheme.primary.withValues(alpha: 0.25),
                             blurRadius: 30,
                             spreadRadius: 5,
                             offset: const Offset(0, 10),
@@ -148,7 +133,6 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            // Rotating ring
                             RotationTransition(
                               turns: _rotateAnimation,
                               child: Container(
@@ -157,32 +141,32 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: colorScheme.secondary.withOpacity(0.3),
+                                    color: colorScheme.primary
+                                        .withValues(alpha: 0.4),
                                     width: 3,
                                   ),
                                 ),
                               ),
                             ),
-                            // Icon
                             Icon(
                               Icons.check_circle,
                               size: 50,
-                              color: colorScheme.secondary,
+                              color: colorScheme.primary,
                             ),
                           ],
                         ),
                       ),
                     ),
                     const SizedBox(height: 32),
-                    // App Name with gradient effect
                     ShaderMask(
                       shaderCallback: (bounds) => LinearGradient(
                         colors: [
-                          Colors.white,
-                          Colors.white.withOpacity(0.9),
+                          colorScheme.primary,
+                          Color.lerp(
+                              colorScheme.primary, colorScheme.tertiary, 0.5)!,
                         ],
                       ).createShader(bounds),
-                      child: const Text(
+                      child: Text(
                         'HabitBee',
                         style: TextStyle(
                           fontSize: 36,
@@ -197,43 +181,45 @@ class _SplashScreenState extends State<SplashScreen> with TickerProviderStateMix
                       'Build Better Habits',
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.white.withOpacity(0.9),
+                        color: colorScheme.primary.withValues(alpha: 0.75),
                         letterSpacing: 0.5,
                       ),
                     ),
                     const SizedBox(height: 48),
-                    // Modern Material Loading Indicator
                     SizedBox(
                       width: 48,
                       height: 48,
                       child: Stack(
                         alignment: Alignment.center,
                         children: [
-                          // Outer rotating ring
                           RotationTransition(
                             turns: _rotateAnimation,
                             child: CircularProgressIndicator(
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white.withOpacity(0.3),
+                                colorScheme.primary.withValues(alpha: 0.3),
                               ),
                               strokeWidth: 2,
                             ),
                           ),
-                          // Inner pulsing dot
                           AnimatedBuilder(
                             animation: _loaderController,
                             builder: (context, child) {
-                              final pulseValue = (0.5 + 0.5 * 
-                                (1 + (_loaderController.value * 2 - 1).abs())).clamp(0.5, 1.0);
+                              final pulseValue = (0.5 +
+                                      0.5 *
+                                          (1 +
+                                              (_loaderController.value * 2 - 1)
+                                                  .abs()))
+                                  .clamp(0.5, 1.0);
                               return Container(
                                 width: 12 * pulseValue,
                                 height: 12 * pulseValue,
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: colorScheme.primary,
                                   shape: BoxShape.circle,
                                   boxShadow: [
                                     BoxShadow(
-                                      color: Colors.white.withOpacity(0.5),
+                                      color: colorScheme.primary
+                                          .withValues(alpha: 0.5),
                                       blurRadius: 10 * pulseValue,
                                       spreadRadius: 2 * pulseValue,
                                     ),

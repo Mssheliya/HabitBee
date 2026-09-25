@@ -16,19 +16,26 @@ class HabitAdapter extends TypeAdapter<Habit> {
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
+    final rawDays = fields[7];
+    final repeatDays = rawDays is List
+        ? List<bool>.generate(
+            7,
+            (i) => i < rawDays.length ? _hbBool(rawDays[i], false) : false,
+          )
+        : List<bool>.filled(7, false);
     return Habit(
-      id: fields[0] as String,
-      name: fields[1] as String,
-      category: fields[2] as String,
-      colorIndex: fields[3] as int,
-      iconName: fields[4] as String,
-      reminderEnabled: fields[5] as bool,
-      reminderTime: fields[6] as DateTime?,
-      repeatDays: (fields[7] as List).cast<bool>(),
-      createdAt: fields[8] as DateTime,
-      isArchived: fields[9] as bool,
-      notificationId: fields[10] as int,
-      frequencyPerDay: fields[11] as int,
+      id: fields[0]?.toString() ?? '',
+      name: fields[1]?.toString() ?? '',
+      category: fields[2]?.toString() ?? 'Other',
+      colorIndex: _hbInt(fields[3], 0),
+      iconName: fields[4]?.toString() ?? 'star',
+      reminderEnabled: _hbBool(fields[5], false),
+      reminderTime: _hbDateOrNull(fields[6]),
+      repeatDays: repeatDays,
+      createdAt: _hbDate(fields[8], DateTime.now()),
+      isArchived: _hbBool(fields[9], false),
+      notificationId: _hbInt(fields[10], 0),
+      frequencyPerDay: _hbInt(fields[11], 1),
     );
   }
 

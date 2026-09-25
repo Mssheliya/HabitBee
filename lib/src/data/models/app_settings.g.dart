@@ -17,22 +17,25 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return AppSettings(
-      isDarkMode: fields[0] as bool,
-      notificationsEnabled: fields[1] as bool,
-      userName: fields[2] as String?,
-      lastBackupDate: fields[3] as DateTime?,
-      themeType: fields[4] as AppThemeType,
-      customPrimaryColor: fields[5] as int?,
-      customSecondaryColor: fields[6] as int?,
-      fontScale: fields[7] as double,
-      useSystemTheme: fields[8] as bool,
+      isDarkMode: _parseBool(fields[0], false),
+      notificationsEnabled: _parseBool(fields[1], true),
+      userName: fields[2]?.toString(),
+      lastBackupDate: _parseDateTime(fields[3]),
+      themeType: _parseThemeType(fields[4]),
+      customPrimaryColor: _parseColorValue(fields[5]),
+      customSecondaryColor: _parseColorValue(fields[6]),
+      fontScale: _parseDouble(fields[7], 1.0),
+      useSystemTheme: _parseBool(fields[8], false),
+      dynamicSchemeVariantIndex: _parseColorValue(fields[9]) ?? 0,
+      selectedColorSeed: _parseColorValue(fields[10]),
+      hapticFeedbackEnabled: _parseBool(fields[11], true),
     );
   }
 
   @override
   void write(BinaryWriter writer, AppSettings obj) {
     writer
-      ..writeByte(9)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.isDarkMode)
       ..writeByte(1)
@@ -50,7 +53,13 @@ class AppSettingsAdapter extends TypeAdapter<AppSettings> {
       ..writeByte(7)
       ..write(obj.fontScale)
       ..writeByte(8)
-      ..write(obj.useSystemTheme);
+      ..write(obj.useSystemTheme)
+      ..writeByte(9)
+      ..write(obj.dynamicSchemeVariantIndex)
+      ..writeByte(10)
+      ..write(obj.selectedColorSeed)
+      ..writeByte(11)
+      ..write(obj.hapticFeedbackEnabled);
   }
 
   @override

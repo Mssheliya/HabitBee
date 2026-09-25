@@ -14,22 +14,38 @@ class StorageService {
   Box<Habit>? _habitsBox;
   Box<HabitCompletion>? _completionsBox;
   Box<AppSettings>? _settingsBox;
+  Box<dynamic>? _metaBox;
 
   Future<void> initialize() async {
     await Hive.initFlutter();
-    
+
     Hive.registerAdapter(HabitAdapter());
     Hive.registerAdapter(HabitCompletionAdapter());
     Hive.registerAdapter(AppSettingsAdapter());
     Hive.registerAdapter(AppThemeTypeAdapter());
 
     _habitsBox = await Hive.openBox<Habit>(AppConstants.habitsBox);
-    _completionsBox = await Hive.openBox<HabitCompletion>(AppConstants.completionsBox);
+    _completionsBox = await Hive.openBox<HabitCompletion>(
+      AppConstants.completionsBox,
+    );
     _settingsBox = await Hive.openBox<AppSettings>(AppConstants.settingsBox);
+    _metaBox = await Hive.openBox<dynamic>('app_meta');
 
     if (_settingsBox!.isEmpty) {
       await _settingsBox!.put('settings', AppSettings.defaultSettings());
     }
+  }
+
+  /// Sequential, collision-safe notification base IDs in a small positive
+  /// range (1000, 1010, 1020, ...). Each habit can use base..base+6 for its
+  /// per-day reminder notifications without ever colliding with another
+  /// habit or overflowing the 32-bit notification ID space.
+  Future<int> getNextNotificationBaseId() async {
+    final box = _metaBox ?? await Hive.openBox<dynamic>('app_meta');
+    final current = (box.get('notification_id_counter') as int?) ?? 0;
+    final next = current + 1;
+    await box.put('notification_id_counter', next);
+    return 1000 + next * 10;
   }
 
   // Habits
@@ -39,6 +55,10 @@ class StorageService {
 
   Future<List<Habit>> getActiveHabits() async {
     return _habitsBox?.values.where((h) => !h.isArchived).toList() ?? [];
+  }
+
+  Future<List<Habit>> getArchivedHabits() async {
+    return _habitsBox?.values.where((h) => h.isArchived).toList() ?? [];
   }
 
   Future<Habit?> getHabit(String id) async {
@@ -65,16 +85,22 @@ class StorageService {
 
   Future<List<HabitCompletion>> getCompletionsForHabit(String habitId) async {
     return _completionsBox?.values
-        .where((c) => c.habitId == habitId)
-        .toList() ?? [];
+            .where((c) => c.habitId == habitId)
+            .toList() ??
+        [];
   }
 
-  Future<HabitCompletion?> getCompletionForDate(String habitId, DateTime date) async {
+  Future<HabitCompletion?> getCompletionForDate(
+    String habitId,
+    DateTime date,
+  ) async {
     // Normalize date to ensure consistent comparison (remove time component)
     final normalizedDate = DateTime(date.year, date.month, date.day);
     final id = '${habitId}_${normalizedDate.toIso8601String().split('T')[0]}';
     final completion = _completionsBox?.get(id);
-    debugPrint('StorageService: Getting completion for $id -> ${completion != null ? 'Found (count: ${completion.completionCount}, completed: ${completion.completed})' : 'Not found'}');
+    debugPrint(
+      'StorageService: Getting completion for $id -> ${completion != null ? 'Found (count: ${completion.completionCount}, completed: ${completion.completed})' : 'Not found'}',
+    );
     return completion;
   }
 
@@ -82,16 +108,21 @@ class StorageService {
     // Normalize date to ensure consistent comparison (remove time component)
     final normalizedDate = DateTime(date.year, date.month, date.day);
     final dateStr = normalizedDate.toIso8601String().split('T')[0];
-    return _completionsBox?.values
-        .where((c) {
-          final completionDate = DateTime(c.date.year, c.date.month, c.date.day);
+    return _completionsBox?.values.where((c) {
+          final completionDate = DateTime(
+            c.date.year,
+            c.date.month,
+            c.date.day,
+          );
           return completionDate.toIso8601String().split('T')[0] == dateStr;
-        })
-        .toList() ?? [];
+        }).toList() ??
+        [];
   }
 
   Future<void> saveCompletion(HabitCompletion completion) async {
-    debugPrint('StorageService: Saving completion ${completion.id} (count: ${completion.completionCount}, completed: ${completion.completed})');
+    debugPrint(
+      'StorageService: Saving completion ${completion.id} (count: ${completion.completionCount}, completed: ${completion.completed})',
+    );
     await _completionsBox?.put(completion.id, completion);
     debugPrint('StorageService: Completion saved successfully');
   }
@@ -157,27 +188,35 @@ class StorageService {
   Future<String> exportToCsv() async {
     final habits = await getAllHabits();
     final completions = await getAllCompletions();
-    
+
     final buffer = StringBuffer();
-    
+
     // Write header
-    buffer.writeln('Habit ID,Name,Category,Color Index,Icon Name,Reminder Enabled,Frequency Per Day,Created At,Is Archived,Completion Date,Completed,Completion Count');
-    
+    buffer.writeln(
+      'Habit ID,Name,Category,Color Index,Icon Name,Reminder Enabled,Frequency Per Day,Created At,Is Archived,Completion Date,Completed,Completion Count',
+    );
+
     // Write data
     for (var habit in habits) {
-      final habitCompletions = completions.where((c) => c.habitId == habit.id).toList();
-      
+      final habitCompletions = completions
+          .where((c) => c.habitId == habit.id)
+          .toList();
+
       if (habitCompletions.isEmpty) {
         // Write habit row without completions
-        buffer.writeln('${habit.id},${_escapeCsv(habit.name)},${_escapeCsv(habit.category)},${habit.colorIndex},${habit.iconName},${habit.reminderEnabled},${habit.frequencyPerDay},${habit.createdAt.toIso8601String()},${habit.isArchived},,,0');
+        buffer.writeln(
+          '${habit.id},${_escapeCsv(habit.name)},${_escapeCsv(habit.category)},${habit.colorIndex},${habit.iconName},${habit.reminderEnabled},${habit.frequencyPerDay},${habit.createdAt.toIso8601String()},${habit.isArchived},,,0',
+        );
       } else {
         // Write habit row for each completion
         for (var completion in habitCompletions) {
-          buffer.writeln('${habit.id},${_escapeCsv(habit.name)},${_escapeCsv(habit.category)},${habit.colorIndex},${habit.iconName},${habit.reminderEnabled},${habit.frequencyPerDay},${habit.createdAt.toIso8601String()},${habit.isArchived},${completion.date.toIso8601String()},${completion.completed},${completion.completionCount}');
+          buffer.writeln(
+            '${habit.id},${_escapeCsv(habit.name)},${_escapeCsv(habit.category)},${habit.colorIndex},${habit.iconName},${habit.reminderEnabled},${habit.frequencyPerDay},${habit.createdAt.toIso8601String()},${habit.isArchived},${completion.date.toIso8601String()},${completion.completed},${completion.completionCount}',
+          );
         }
       }
     }
-    
+
     return buffer.toString();
   }
 
@@ -193,18 +232,21 @@ class StorageService {
   Future<int> importFromCsv(String csvData) async {
     final lines = LineSplitter.split(csvData).toList();
     if (lines.isEmpty) return 0;
-    
+
     // Skip header line
-    final dataLines = lines.skip(1).where((line) => line.trim().isNotEmpty).toList();
-    
+    final dataLines = lines
+        .skip(1)
+        .where((line) => line.trim().isNotEmpty)
+        .toList();
+
     int importedHabits = 0;
     final Map<String, Habit> habitMap = {};
-    
+
     for (var line in dataLines) {
       try {
         final parts = _parseCsvLine(line);
         if (parts.length < 8) continue;
-        
+
         final habitId = parts[0];
         final habitName = parts[1];
         final category = parts[2];
@@ -212,7 +254,7 @@ class StorageService {
         final iconName = parts[4];
         final reminderEnabled = parts[5].toLowerCase() == 'true';
         final frequencyPerDay = int.tryParse(parts[6]) ?? 1;
-        
+
         // Create or get existing habit
         if (!habitMap.containsKey(habitId)) {
           final habit = Habit.create(
@@ -227,14 +269,15 @@ class StorageService {
           await saveHabit(habit);
           importedHabits++;
         }
-        
+
         // Import completion if present
         if (parts.length >= 11 && parts[9].isNotEmpty) {
           try {
             final completionDate = DateTime.parse(parts[9]);
             final completed = parts[10].toLowerCase() == 'true';
-            final completionCount = int.tryParse(parts[11]) ?? (completed ? 1 : 0);
-            
+            final completionCount =
+                int.tryParse(parts[11]) ?? (completed ? 1 : 0);
+
             final habit = habitMap[habitId]!;
             final completion = HabitCompletion(
               id: '${habit.id}_${completionDate.toIso8601String().split('T')[0]}',
@@ -252,7 +295,7 @@ class StorageService {
         debugPrint('Error parsing CSV line: $e');
       }
     }
-    
+
     return importedHabits;
   }
 
@@ -261,10 +304,10 @@ class StorageService {
     final result = <String>[];
     var current = StringBuffer();
     var inQuotes = false;
-    
+
     for (var i = 0; i < line.length; i++) {
       final char = line[i];
-      
+
       if (char == '"') {
         if (inQuotes && i + 1 < line.length && line[i + 1] == '"') {
           // Escaped quote
@@ -280,7 +323,7 @@ class StorageService {
         current.write(char);
       }
     }
-    
+
     result.add(current.toString());
     return result;
   }

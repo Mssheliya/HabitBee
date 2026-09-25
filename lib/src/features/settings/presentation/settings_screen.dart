@@ -7,12 +7,14 @@ import 'package:habit_bee/src/core/theme/app_theme.dart';
 import 'package:habit_bee/src/core/theme/theme_provider.dart';
 import 'package:habit_bee/src/core/services/notification_service.dart';
 import 'package:habit_bee/src/core/widgets/material_loading_indicator.dart';
+import 'package:habit_bee/src/core/widgets/theme_color_circle.dart';
 import 'package:habit_bee/src/features/settings/presentation/theme_settings_screen.dart';
+import 'package:habit_bee/src/features/settings/presentation/archived_habits_screen.dart';
+import 'package:habit_bee/src/features/add_habit/presentation/widgets/grouped_card.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:intl/intl.dart';
-import 'package:habit_bee/src/data/models/app_settings.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -35,21 +37,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _loadSettings() async {
     final storageService = Provider.of<StorageService>(context, listen: false);
     final settings = await storageService.getSettings();
-    setState(() {
-      _notificationsEnabled = settings.notificationsEnabled;
-      _isLoading = false;
-    });
-  }
-
-  Future<void> _toggleDarkMode(bool value) async {
-    final themeProvider = Provider.of<ThemeProvider>(context, listen: false);
-    await themeProvider.setDarkMode(value);
+    if (mounted) {
+      setState(() {
+        _notificationsEnabled = settings.notificationsEnabled;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _toggleNotifications(bool value) async {
     final storageService = Provider.of<StorageService>(context, listen: false);
     final settings = await storageService.getSettings();
-    await storageService.saveSettings(settings.copyWith(notificationsEnabled: value));
+    await storageService.saveSettings(
+      settings.copyWith(notificationsEnabled: value),
+    );
     setState(() {
       _notificationsEnabled = value;
     });
@@ -58,108 +59,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
   // Export data to JSON file
   Future<void> _exportToJson() async {
     try {
-      final storageService = Provider.of<StorageService>(context, listen: false);
+      final storageService = Provider.of<StorageService>(
+        context,
+        listen: false,
+      );
       final data = await storageService.exportData();
       final jsonData = jsonEncode(data);
-      
-      // Create file with timestamp
+
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'habitbee_backup_$timestamp.json';
-      
-      // Get temporary directory
+
       final tempDir = await getTemporaryDirectory();
       final filePath = '${tempDir.path}/$fileName';
-      
-      // Write to file
+
       final file = File(filePath);
       await file.writeAsString(jsonData);
-      
-      // Share the file
+
       await Share.shareXFiles(
         [XFile(filePath)],
         text: 'HabitBee Backup - $timestamp',
         subject: 'HabitBee Data Backup',
       );
-      
-      // Clean up temp file after sharing
+
       if (await file.exists()) {
         await file.delete();
       }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Backup exported successfully!')),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Backup exported successfully!')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Export failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
     }
   }
 
   // Export data to CSV file
   Future<void> _exportToCsv() async {
     try {
-      final storageService = Provider.of<StorageService>(context, listen: false);
+      final storageService = Provider.of<StorageService>(
+        context,
+        listen: false,
+      );
       final csvData = await storageService.exportToCsv();
-      
-      // Create file with timestamp
+
       final timestamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       final fileName = 'habitbee_export_$timestamp.csv';
-      
-      // Get temporary directory
+
       final tempDir = await getTemporaryDirectory();
       final filePath = '${tempDir.path}/$fileName';
-      
-      // Write to file
+
       final file = File(filePath);
       await file.writeAsString(csvData);
-      
-      // Share the file
+
       await Share.shareXFiles(
         [XFile(filePath)],
         text: 'HabitBee CSV Export - $timestamp',
         subject: 'HabitBee Data Export',
       );
-      
-      // Clean up temp file after sharing
+
       if (await file.exists()) {
         await file.delete();
       }
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data exported to CSV successfully!')),
-      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data exported to CSV successfully!')),
+        );
+      }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSV export failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('CSV export failed: $e')));
+      }
     }
   }
 
   // Import data from JSON file
   Future<void> _importFromJson() async {
     try {
-      // Pick file
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['json'],
         allowMultiple: false,
       );
-      
+
       if (result == null || result.files.isEmpty) {
-        return; // User cancelled
+        return;
       }
-      
+
       final file = result.files.first;
       if (file.path == null) {
         throw Exception('Invalid file path');
       }
-      
-      // Read file
+
       final fileContent = await File(file.path!).readAsString();
       final data = jsonDecode(fileContent) as Map<String, dynamic>;
-      
-      // Confirm import
+
+      if (!mounted) return;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -172,53 +175,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: AppTheme.primaryYellow),
               child: const Text('Import'),
             ),
           ],
         ),
       );
-      
+
       if (confirmed == true) {
-        final storageService = Provider.of<StorageService>(context, listen: false);
-        await storageService.importData(data);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data imported successfully!')),
+        if (!mounted) return;
+        final storageService = Provider.of<StorageService>(
+          context,
+          listen: false,
         );
-        
-        // Refresh UI
-        setState(() {});
+        await storageService.importData(data);
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Data imported successfully!')),
+          );
+          setState(() {});
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Import failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Import failed: $e')));
+      }
     }
   }
 
   // Import data from CSV file
   Future<void> _importFromCsv() async {
     try {
-      // Pick file
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['csv'],
         allowMultiple: false,
       );
-      
+
       if (result == null || result.files.isEmpty) {
-        return; // User cancelled
+        return;
       }
-      
+
       final file = result.files.first;
       if (file.path == null) {
         throw Exception('Invalid file path');
       }
-      
-      // Confirm import
+
+      if (!mounted) return;
       final confirmed = await showDialog<bool>(
         context: context,
         builder: (context) => AlertDialog(
@@ -231,31 +238,38 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onPressed: () => Navigator.of(context).pop(false),
               child: const Text('Cancel'),
             ),
-            TextButton(
+            FilledButton(
               onPressed: () => Navigator.of(context).pop(true),
-              style: TextButton.styleFrom(foregroundColor: AppTheme.primaryYellow),
               child: const Text('Import'),
             ),
           ],
         ),
       );
-      
+
       if (confirmed == true) {
-        final storageService = Provider.of<StorageService>(context, listen: false);
+        if (!mounted) return;
+        final storageService = Provider.of<StorageService>(
+          context,
+          listen: false,
+        );
         final fileContent = await File(file.path!).readAsString();
         final importedCount = await storageService.importFromCsv(fileContent);
-        
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('$importedCount habits imported successfully!')),
-        );
-        
-        // Refresh UI
-        setState(() {});
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$importedCount habits imported successfully!'),
+            ),
+          );
+          setState(() {});
+        }
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('CSV import failed: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('CSV import failed: $e')));
+      }
     }
   }
 
@@ -272,9 +286,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             onPressed: () => Navigator.of(context).pop(false),
             child: const Text('Cancel'),
           ),
-          TextButton(
+          FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
             child: const Text('Delete All'),
           ),
         ],
@@ -282,32 +299,47 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
 
     if (confirmed == true) {
-      final storageService = Provider.of<StorageService>(context, listen: false);
-      await storageService.clearAllData();
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('All data cleared')),
+      if (!mounted) return;
+      final storageService = Provider.of<StorageService>(
+        context,
+        listen: false,
       );
+      await storageService.clearAllData();
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('All data cleared')));
+      }
     }
   }
 
-  void _showAboutDialog(ThemeData theme, ThemeColors currentColors) {
+  void _showAboutDialog(ThemeData theme) {
+    final colorScheme = theme.colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Container(
-              width: 50,
-              height: 50,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: currentColors.primary,
-                borderRadius: BorderRadius.circular(12),
+                color: colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: const Icon(Icons.emoji_nature, color: Colors.white, size: 30),
+              child: Icon(
+                Icons.emoji_nature_rounded,
+                color: colorScheme.onPrimaryContainer,
+                size: 28,
+              ),
             ),
-            const SizedBox(width: 12),
-            const Text('HabitBee'),
+            const SizedBox(width: 14),
+            Text(
+              'HabitBee',
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         content: Column(
@@ -316,21 +348,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
           children: [
             Text(
               'Your personal habit tracker',
-              style: theme.textTheme.bodyLarge,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'HabitBee helps you build positive habits and track your daily progress. Stay motivated and achieve your goals!',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+              style: theme.textTheme.bodyLarge?.copyWith(
+                fontWeight: FontWeight.w500,
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+            Text(
+              'HabitBee helps you build positive habits and track your daily progress with Google Material 3 Design.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 12),
             Row(
               children: [
-                Icon(Icons.person, size: 18, color: currentColors.primary),
+                Icon(
+                  Icons.person_rounded,
+                  size: 18,
+                  color: colorScheme.primary,
+                ),
                 const SizedBox(width: 8),
                 Text(
                   'Created by Mustafa Sheliya',
@@ -343,12 +381,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.code, size: 18, color: currentColors.primary),
+                Icon(Icons.code_rounded, size: 18, color: colorScheme.primary),
                 const SizedBox(width: 8),
-                Text(
-                  'Version 1.0.0',
-                  style: theme.textTheme.bodyMedium,
-                ),
+                Text('Version 1.0.0', style: theme.textTheme.bodyMedium),
               ],
             ),
           ],
@@ -356,7 +391,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Close', style: TextStyle(color: currentColors.primary)),
+            child: const Text('Close'),
           ),
         ],
       ),
@@ -371,22 +406,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _rateApp() async {
-    final url = Uri.parse('https://play.google.com/store/apps/details?id=com.habitbee.app');
+    final url = Uri.parse(
+      'https://play.google.com/store/apps/details?id=com.habitbee.app',
+    );
     try {
       if (await canLaunchUrl(url)) {
         await launchUrl(url, mode: LaunchMode.externalApplication);
       } else {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not open store')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('Could not open store')));
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: $e')));
       }
     }
   }
@@ -394,33 +431,41 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final currentColors = themeProvider.currentThemeColors;
 
     if (_isLoading) {
       return Scaffold(
         body: Center(
           child: MaterialLoadingIndicator(
             size: 48,
-            color: Theme.of(context).colorScheme.primary,
+            color: colorScheme.primary,
             style: LoadingStyle.bouncing,
           ),
         ),
       );
     }
 
+    // Determine current effective brightness for circle preview calculations
+    final currentBrightness = themeProvider.themeMode == ThemeMode.dark
+        ? Brightness.dark
+        : (themeProvider.themeMode == ThemeMode.light
+              ? Brightness.light
+              : MediaQuery.platformBrightnessOf(context));
+
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
                   Text(
                     'Settings',
-                    style: theme.textTheme.displaySmall?.copyWith(
+                    style: theme.textTheme.headlineMedium?.copyWith(
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -429,16 +474,71 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
                 children: [
-                  // Appearance Section
-                  _buildSectionTitle(theme, 'Appearance'),
+                  // Appearance & Theme Card
+                  _buildSectionTitle(theme, 'Theme'),
                   _buildSettingsCard(
                     theme,
                     children: [
-                      // Quick Theme Selection
+                      // Theme Mode Selection
                       Padding(
-                        padding: const EdgeInsets.all(16),
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Theme',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: SegmentedButton<ThemeMode>(
+                                segments: const [
+                                  ButtonSegment<ThemeMode>(
+                                    value: ThemeMode.system,
+                                    label: Text('System'),
+                                    icon: Icon(
+                                      Icons.brightness_auto_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  ButtonSegment<ThemeMode>(
+                                    value: ThemeMode.light,
+                                    label: Text('Light'),
+                                    icon: Icon(
+                                      Icons.light_mode_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  ButtonSegment<ThemeMode>(
+                                    value: ThemeMode.dark,
+                                    label: Text('Dark'),
+                                    icon: Icon(
+                                      Icons.dark_mode_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                ],
+                                selected: {themeProvider.themeMode},
+                                onSelectionChanged: (newSelection) {
+                                  themeProvider.setThemeMode(
+                                    newSelection.first,
+                                  );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // Theme Color Circles (3-Color Split Preview)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -446,7 +546,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Select Theme',
+                                  'Theme Color',
                                   style: theme.textTheme.titleMedium?.copyWith(
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -456,41 +556,95 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     Navigator.push(
                                       context,
                                       MaterialPageRoute(
-                                        builder: (context) => const ThemeSettingsScreen(),
+                                        builder: (context) =>
+                                            const ThemeSettingsScreen(),
                                       ),
                                     );
                                   },
-                                  icon: const Icon(Icons.tune, size: 18),
+                                  icon: const Icon(
+                                    Icons.tune_rounded,
+                                    size: 16,
+                                  ),
                                   label: const Text('More Options'),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 12),
-                            _buildThemeSelector(context, theme, themeProvider, currentColors),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              height: 86,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: AppTheme.seedOptions.length,
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(width: 6),
+                                itemBuilder: (context, index) {
+                                  final option = AppTheme.seedOptions[index];
+                                  final isSelected =
+                                      themeProvider.selectedSeedColor
+                                          .toARGB32() ==
+                                      option.seedColor.toARGB32();
+
+                                  return ThemeColorCircle(
+                                    seedColor: option.seedColor,
+                                    name: option.name,
+                                    isSelected: isSelected,
+                                    brightness: currentBrightness,
+                                    dynamicSchemeVariant:
+                                        themeProvider.dynamicSchemeVariant,
+                                    onTap: () {
+                                      themeProvider.setSelectedSeedColor(
+                                        option.seedColor,
+                                        legacyType: option.legacyType,
+                                      );
+                                    },
+                                  );
+                                },
+                              ),
+                            ),
                           ],
                         ),
                       ),
-                      const Divider(height: 1),
-                      SwitchListTile(
-                        title: const Text('Dark Mode'),
-                        subtitle: const Text('Enable dark theme'),
-                        value: themeProvider.isDarkMode,
-                        onChanged: _toggleDarkMode,
-                        secondary: const Icon(Icons.dark_mode),
-                        activeColor: currentColors.primary,
+                      const SizedBox(height: 12),
+
+                      // Theme Variant Dropdown
+                      Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Theme Variant',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            _buildVariantMenuButton(
+                              context,
+                              themeProvider,
+                              colorScheme,
+                            ),
+                          ],
+                        ),
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
+
+                      // Haptic Feedback Toggle
                       SwitchListTile(
-                        title: const Text('Use System Theme'),
-                        subtitle: const Text('Follow device theme settings'),
-                        value: themeProvider.useSystemTheme,
-                        onChanged: (value) => themeProvider.setUseSystemTheme(value),
-                        secondary: const Icon(Icons.brightness_auto),
-                        activeColor: currentColors.primary,
+                        title: const Text('Haptic Feedback'),
+                        subtitle: const Text(
+                          'Tactile response on taps and interactions',
+                        ),
+                        value: themeProvider.hapticFeedbackEnabled,
+                        onChanged: (value) =>
+                            themeProvider.setHapticFeedbackEnabled(value),
+                        secondary: const Icon(Icons.vibration_rounded),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Notifications Section
                   _buildSectionTitle(theme, 'Notifications'),
@@ -499,95 +653,149 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     children: [
                       SwitchListTile(
                         title: const Text('Enable Notifications'),
-                        subtitle: const Text('Receive habit reminders'),
+                        subtitle: const Text('Receive daily habit reminders'),
                         value: _notificationsEnabled,
                         onChanged: _toggleNotifications,
-                        secondary: const Icon(Icons.notifications),
-                        activeColor: currentColors.primary,
+                        secondary: const Icon(Icons.notifications_rounded),
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       ListTile(
-                        leading: Icon(Icons.notifications_active, color: currentColors.primary),
+                        leading: const Icon(Icons.notifications_active_rounded),
                         title: const Text('Test Notification'),
-                        subtitle: const Text('Send a test notification now'),
-                        trailing: const Icon(Icons.send),
+                        subtitle: const Text(
+                          'Send a test reminder notification now',
+                        ),
+                        trailing: const Icon(Icons.send_rounded, size: 20),
                         onTap: () async {
+                          themeProvider.triggerHaptic();
+                          final messenger = ScaffoldMessenger.of(context);
                           try {
                             await NotificationService().showTestNotification();
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('Test notification sent! Check your notification tray.')),
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Test notification sent! Check notification tray.',
+                                ),
+                              ),
                             );
                           } catch (e) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(content: Text('Failed to send notification: $e')),
+                            messenger.showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Failed to send notification: $e',
+                                ),
+                              ),
                             );
                           }
                         },
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // Data Management Section
                   _buildSectionTitle(theme, 'Data Management'),
                   _buildSettingsCard(
                     theme,
                     children: [
+                      // Archived Habits
+                      ListTile(
+                        leading: const Icon(Icons.archive_rounded),
+                        title: const Text('Archived Habits'),
+                        subtitle: const Text(
+                          'Restore or permanently delete archived habits',
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        onTap: () {
+                          Provider.of<ThemeProvider>(
+                            context,
+                            listen: false,
+                          ).triggerHaptic();
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const ArchivedHabitsScreen(),
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(height: 12),
                       // Export Options
                       ExpansionTile(
-                        leading: Icon(Icons.upload, color: currentColors.primary),
+                        leading: const Icon(Icons.upload_file_rounded),
                         title: const Text('Export Data'),
-                        subtitle: const Text('Backup your habits to file (JSON or CSV)'),
+                        subtitle: const Text(
+                          'Backup habits to JSON or CSV spreadsheet',
+                        ),
                         children: [
                           ListTile(
-                            leading: const Icon(Icons.code),
+                            leading: const Icon(Icons.code_rounded),
                             title: const Text('Export as JSON'),
-                            subtitle: const Text('Full backup with all data'),
+                            subtitle: const Text(
+                              'Full backup with all completions and settings',
+                            ),
                             onTap: _exportToJson,
                           ),
                           ListTile(
-                            leading: const Icon(Icons.table_chart),
+                            leading: const Icon(Icons.table_chart_rounded),
                             title: const Text('Export as CSV'),
-                            subtitle: const Text('Spreadsheet format'),
+                            subtitle: const Text(
+                              'Spreadsheet format for Excel/Sheets',
+                            ),
                             onTap: _exportToCsv,
                           ),
                         ],
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       // Import Options
                       ExpansionTile(
-                        leading: Icon(Icons.download, color: currentColors.primary),
+                        leading: const Icon(Icons.download_rounded),
                         title: const Text('Import Data'),
-                        subtitle: const Text('Restore from file (JSON or CSV)'),
+                        subtitle: const Text(
+                          'Restore habits from JSON or CSV backup',
+                        ),
                         children: [
                           ListTile(
-                            leading: const Icon(Icons.code),
+                            leading: const Icon(Icons.code_rounded),
                             title: const Text('Import from JSON'),
-                            subtitle: const Text('Restore full backup'),
+                            subtitle: const Text('Restore full backup file'),
                             onTap: _importFromJson,
                           ),
                           ListTile(
-                            leading: const Icon(Icons.table_chart),
+                            leading: const Icon(Icons.table_chart_rounded),
                             title: const Text('Import from CSV'),
-                            subtitle: const Text('Import habits from CSV'),
+                            subtitle: const Text('Import habits from CSV file'),
                             onTap: _importFromCsv,
                           ),
                         ],
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       ListTile(
-                        leading: const Icon(Icons.delete_forever, color: Colors.red),
-                        title: const Text(
-                          'Clear All Data',
-                          style: TextStyle(color: Colors.red),
+                        leading: Icon(
+                          Icons.delete_forever_rounded,
+                          color: colorScheme.error,
                         ),
-                        subtitle: const Text('Delete all habits and progress'),
-                        trailing: const Icon(Icons.chevron_right, color: Colors.red),
+                        title: Text(
+                          'Clear All Data',
+                          style: TextStyle(
+                            color: colorScheme.error,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Delete all habits and history permanently',
+                        ),
+                        trailing: Icon(
+                          Icons.chevron_right_rounded,
+                          color: colorScheme.error,
+                        ),
                         onTap: _clearAllData,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 20),
 
                   // About Section
                   _buildSectionTitle(theme, 'About'),
@@ -595,39 +803,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     theme,
                     children: [
                       ListTile(
-                        leading: const Icon(Icons.info),
+                        leading: const Icon(Icons.info_outline_rounded),
                         title: const Text('App Version'),
                         trailing: Text(
                           '1.0.0',
                           style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
                           ),
                         ),
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       ListTile(
-                        leading: const Icon(Icons.star),
+                        leading: const Icon(Icons.star_rounded),
                         title: const Text('Rate HabitBee'),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: _rateApp,
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       ListTile(
-                        leading: const Icon(Icons.info_outline),
+                        leading: const Icon(Icons.emoji_nature_rounded),
                         title: const Text('About HabitBee'),
-                        trailing: const Icon(Icons.chevron_right),
-                        onTap: () => _showAboutDialog(theme, currentColors),
+                        trailing: const Icon(Icons.chevron_right_rounded),
+                        onTap: () => _showAboutDialog(theme),
                       ),
-                      const Divider(height: 1),
+                      const SizedBox(height: 12),
                       ListTile(
-                        leading: const Icon(Icons.share),
+                        leading: const Icon(Icons.share_rounded),
                         title: const Text('Share HabitBee'),
-                        trailing: const Icon(Icons.chevron_right),
+                        trailing: const Icon(Icons.chevron_right_rounded),
                         onTap: _shareApp,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 36),
                 ],
               ),
             ),
@@ -637,115 +846,130 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildThemeSelector(BuildContext context, ThemeData theme, ThemeProvider themeProvider, ThemeColors currentColors) {
-    final themes = AppTheme.themeColors.entries.toList();
+  Widget _buildVariantMenuButton(
+    BuildContext context,
+    ThemeProvider themeProvider,
+    ColorScheme colorScheme,
+  ) {
+    final currentVariant = themeProvider.dynamicSchemeVariant;
+    final currentOption = AppTheme.variantOptions.firstWhere(
+      (opt) => opt.variant == currentVariant,
+      orElse: () => AppTheme.variantOptions.first,
+    );
 
-    return SizedBox(
-      height: 80,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: themes.length,
-        itemBuilder: (context, index) {
-          final entry = themes[index];
-          final isSelected = themeProvider.themeType == entry.key;
-          final colors = entry.value;
-          final isCustom = entry.key == AppThemeType.custom;
-
-          return Padding(
-            padding: const EdgeInsets.only(right: 12),
-            child: InkWell(
-              onTap: () => themeProvider.setThemeType(entry.key),
-              borderRadius: BorderRadius.circular(12),
-              child: Container(
-                width: 70,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: isSelected ? currentColors.primary : Colors.transparent,
-                    width: 2,
+    return PopupMenuButton<DynamicSchemeVariant>(
+      initialValue: currentVariant,
+      tooltip: 'Select Variant',
+      onSelected: (variant) {
+        themeProvider.setDynamicSchemeVariant(variant);
+      },
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      itemBuilder: (context) {
+        return AppTheme.variantOptions.map((opt) {
+          final isSelected = opt.variant == currentVariant;
+          return PopupMenuItem<DynamicSchemeVariant>(
+            value: opt.variant,
+            child: Row(
+              children: [
+                Icon(
+                  isSelected
+                      ? Icons.radio_button_checked_rounded
+                      : Icons.radio_button_off_rounded,
+                  color: isSelected ? colorScheme.primary : colorScheme.outline,
+                  size: 18,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        opt.name,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.w700
+                              : FontWeight.normal,
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
+                        ),
+                      ),
+                      Text(
+                        opt.description,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
                   ),
-                  color: isSelected 
-                    ? currentColors.primary.withOpacity(0.1) 
-                    : theme.cardTheme.color,
                 ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: colors.primary,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.primary.withOpacity(0.4),
-                            blurRadius: 6,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: isCustom
-                          ? const Icon(
-                              Icons.colorize,
-                              color: Colors.white,
-                              size: 20,
-                            )
-                          : (isSelected
-                              ? const Icon(Icons.check, color: Colors.white, size: 20)
-                              : null),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      colors.name,
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                        color: isSelected ? currentColors.primary : null,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
+              ],
             ),
           );
-        },
+        }).toList();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: colorScheme.primaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              currentOption.name,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.arrow_drop_down_rounded,
+              color: colorScheme.onPrimaryContainer,
+              size: 20,
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSectionTitle(ThemeData theme, String title) {
     return Padding(
-      padding: const EdgeInsets.only(left: 8, bottom: 8),
+      padding: const EdgeInsets.only(left: 6, bottom: 8, top: 4),
       child: Text(
         title,
         style: theme.textTheme.titleSmall?.copyWith(
           color: theme.colorScheme.onSurfaceVariant,
           fontWeight: FontWeight.w600,
+          letterSpacing: 0.2,
         ),
       ),
     );
   }
 
+  /// Renders each child as a card in one Android-style grouped stack:
+  /// larger radius on the outer corners of the first/last items, smaller
+  /// radius in-between, with a tiny gap so the background peeks through.
   Widget _buildSettingsCard(ThemeData theme, {required List<Widget> children}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    final items = children.where((w) => w is! SizedBox).toList();
+
+    return Column(
+      children: [
+        for (var i = 0; i < items.length; i++) ...[
+          if (i > 0) const SizedBox(height: GroupedCard.innerGap),
+          GroupedCard(
+            position: groupedPosition(i, items.length),
+            padding: EdgeInsets.zero,
+            child: items[i],
           ),
         ],
-      ),
-      child: Column(
-        children: children,
-      ),
+      ],
     );
   }
 }

@@ -17,19 +17,20 @@ class HabitCompletionAdapter extends TypeAdapter<HabitCompletion> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return HabitCompletion(
-      id: fields[0] as String,
-      habitId: fields[1] as String,
-      date: fields[2] as DateTime,
-      completed: fields[3] as bool,
-      completedAt: fields[4] as DateTime?,
-      completionCount: fields[5] as int,
+      id: fields[0]?.toString() ?? '',
+      habitId: fields[1]?.toString() ?? '',
+      date: _hcDate(fields[2], DateTime.now()),
+      completed: _hcBool(fields[3], false),
+      completedAt: _hcDateOrNull(fields[4]),
+      completionCount: _hcInt(fields[5], 0),
+      note: fields[6]?.toString(),
     );
   }
 
   @override
   void write(BinaryWriter writer, HabitCompletion obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -41,7 +42,9 @@ class HabitCompletionAdapter extends TypeAdapter<HabitCompletion> {
       ..writeByte(4)
       ..write(obj.completedAt)
       ..writeByte(5)
-      ..write(obj.completionCount);
+      ..write(obj.completionCount)
+      ..writeByte(6)
+      ..write(obj.note);
   }
 
   @override

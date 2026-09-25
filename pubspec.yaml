@@ -63,6 +63,11 @@ dependencies:
   # Color Picker
   flutter_colorpicker: ^1.1.0
 
+  # Native Splash Screen
+  flutter_native_splash: ^2.4.4
+  flutter_timezone: ^5.1.0
+  timezone: ^0.9.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -87,3 +92,17 @@ flutter_launcher_icons:
   min_sdk_android: 21
   adaptive_icon_background: "#FFC107"
   adaptive_icon_foreground: "assets/icons/HabitBee app icon.png"
+
+flutter_native_splash:
+  color: "#FFC107"
+  image: "assets/icons/HabitBee app icon.png"
+  color_dark: "#1E1E1E"
+  image_dark: "assets/icons/HabitBee app icon.png"
+  android: true
+  ios: true
+  web: false
+  android_12:
+    color: "#FFC107"
+    image: "assets/icons/HabitBee app icon.png"
+    color_dark: "#1E1E1E"
+    image_dark: "assets/icons/HabitBee app icon.png"
