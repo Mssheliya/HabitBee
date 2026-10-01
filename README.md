@@ -42,16 +42,27 @@
 |---------|-------------|
 | ✨ **Create Habits** | Add habits with custom names, categories, colors, and icons |
 | ✅ **Daily Tracking** | Mark habits complete for any date with a single tap |
+| 📝 **Daily Notes** | Attach personal notes to any habit completion for any date |
 | 📅 **Date Navigation** | Honeycomb-style date picker for easy navigation |
-| ⏰ **Smart Reminders** | Set daily reminders with custom times and repeat schedules |
-| 📊 **Analytics** | Track progress with beautiful charts and statistics |
+| ⏰ **Smart Reminders** | Daily reminders with per-day repeat schedules and accurate device-timezone detection |
+| 📊 **Progress & Analytics** | Redesigned progress screen with streaks, charts and detailed per-habit statistics |
+| 🗂️ **Archive Habits** | Archive habits without losing history, restore them anytime |
 | 🌙 **Dark Mode** | Full support for both light and dark themes |
+
+### 🎨 Personalization
+| Feature | Description |
+|---------|-------------|
+| 🎨 **Dynamic Color Themes** | Pick any seed color and Material 3 scheme variant — the whole app adapts |
+| 🖌️ **Habit-Tinted Cards** | Every habit card generates its own Material 3 color scheme from its color |
+| 📳 **Haptic Feedback** | Optional subtle haptics for taps and habit completions |
+| 🐝 **Native Splash Screen** | Branded splash screen on Android & iOS (light and dark) |
 
 ### 🔒 Privacy & Data
 | Feature | Description |
 |---------|-------------|
 | 💾 **Offline-First** | All data stored locally using Hive database |
 | 🔐 **No Account Required** | Your data stays on your device |
+| 🔄 **Safe Upgrades** | Tolerant data parsers keep old data working across app updates |
 | 📦 **Lightweight** | Minimal storage and battery usage |
 
 ---

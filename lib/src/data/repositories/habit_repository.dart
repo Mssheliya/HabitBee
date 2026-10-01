@@ -637,14 +637,16 @@ class HabitRepository {
     final notificationService = NotificationService();
 
     // STEP 0: Migrate habits that still carry the legacy timestamp-based
-    // notification ID (very large values close to 2^31) to small sequential
-    // IDs. Old IDs could overflow 32-bit space when adding the +0..6
-    // day offsets, making Android silently refuse some day notifications.
+    // notification ID (very large values close to 2^31) or a missing/zero ID
+    // to small sequential IDs. Old IDs could overflow 32-bit space when
+    // adding the +0..6 day offsets, making Android silently refuse some
+    // day notifications; an ID of 0 collides across habits.
     const legacyThreshold = 1000000; // sequential IDs start at ~1010
     for (final habit in habits) {
       if (habit.reminderEnabled &&
           habit.reminderTime != null &&
-          habit.notificationId >= legacyThreshold) {
+          (habit.notificationId >= legacyThreshold ||
+              habit.notificationId <= 0)) {
         try {
           final oldId = habit.notificationId;
           await notificationService.cancelNotification(oldId);

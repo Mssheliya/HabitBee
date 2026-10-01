@@ -15,8 +15,15 @@ class StorageService {
   Box<HabitCompletion>? _completionsBox;
   Box<AppSettings>? _settingsBox;
   Box<dynamic>? _metaBox;
+  bool _initialized = false;
 
   Future<void> initialize() async {
+    // Guard: this singleton gets initialized in main() and again from the
+    // background notification-bootstrap. Re-registering Hive adapters or
+    // re-opening boxes a second time throws, which previously killed the
+    // whole background reschedule chain for older habits.
+    if (_initialized) return;
+
     await Hive.initFlutter();
 
     Hive.registerAdapter(HabitAdapter());
@@ -34,6 +41,8 @@ class StorageService {
     if (_settingsBox!.isEmpty) {
       await _settingsBox!.put('settings', AppSettings.defaultSettings());
     }
+
+    _initialized = true;
   }
 
   /// Sequential, collision-safe notification base IDs in a small positive

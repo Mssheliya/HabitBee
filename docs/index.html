@@ -559,7 +559,7 @@
                     <li><a href="#screenshots">Screenshots</a></li>
                     <li><a href="#download">Download</a></li>
                 </ul>
-                <span class="version-badge" id="versionBadge">v1.0.0</span>
+                <span class="version-badge" id="versionBadge">v1.0.3</span>
             </nav>
         </div>
     </header>
@@ -634,27 +634,27 @@
                 <div class="feature-card">
                     <div class="feature-icon">📊</div>
                     <h3>Track Progress</h3>
-                    <p>Monitor your daily habits with beautiful visualizations and detailed statistics.</p>
+                    <p>Redesigned progress screen with beautiful visualizations, streaks and detailed per-habit statistics.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🔔</div>
-                    <h3>Reminders</h3>
-                    <p>Get timely notifications to never miss your habits. Stay consistent!</p>
+                    <h3>Smart Reminders</h3>
+                    <p>Timely notifications with per-day repeat schedules and accurate device-timezone detection.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">🎯</div>
-                    <h3>Goals</h3>
-                    <p>Set daily or weekly goals and track your progress towards achieving them.</p>
+                    <div class="feature-icon">📝</div>
+                    <h3>Daily Notes</h3>
+                    <p>Attach personal notes to any habit completion to remember how your day went.</p>
                 </div>
                 <div class="feature-card">
-                    <div class="feature-icon">📈</div>
-                    <h3>Statistics</h3>
-                    <p>View detailed analytics with streaks, completion rates, and more.</p>
+                    <div class="feature-icon">🗂️</div>
+                    <h3>Archive Habits</h3>
+                    <p>Pause habits without losing history — restore them anytime from the archive.</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">🎨</div>
-                    <h3>Customizable</h3>
-                    <p>Choose from multiple themes and personalize your app experience.</p>
+                    <h3>Dynamic Themes</h3>
+                    <p>Pick any seed color and Material 3 scheme variant. Haptic feedback included!</p>
                 </div>
                 <div class="feature-card">
                     <div class="feature-icon">💾</div>
@@ -704,19 +704,20 @@
             <div class="changelog-card">
                 <div class="changelog-header">
                     <h3 id="releaseTitle">Release Notes</h3>
-                    <span class="release-tag" id="releaseVersion">v1.0.0</span>
+                    <span class="release-tag" id="releaseVersion">v1.0.3</span>
                 </div>
                 <div class="changelog-content" id="changelogContent">
                     <!-- Dynamic content loaded from GitHub -->
                     <div class="changelog-item">
-                        <h4>v1.0.0 - Initial Release</h4>
+                        <h4>v1.0.3 - UI Overhaul &amp; Notes</h4>
                         <ul>
-                            <li>🚀 First release of HabitBee</li>
-                            <li>📱 Beautiful Material 3 design</li>
-                            <li>🔔 Habit reminders</li>
-                            <li>📊 Progress tracking</li>
-                            <li>🎨 Multiple themes</li>
-                            <li>💾 Offline data storage</li>
+                            <li>🎨 Complete Material 3 Expressive UI redesign with dynamic color themes</li>
+                            <li>📝 Daily notes for habit completions</li>
+                            <li>🗂️ New Archived Habits screen</li>
+                            <li>📊 Redesigned Progress &amp; Habit Detail screens</li>
+                            <li>📳 Optional haptic feedback</li>
+                            <li>🐝 Native splash screen (Android &amp; iOS, light &amp; dark)</li>
+                            <li>🔔 Reminder fixes — accurate timezone detection &amp; notification ID overflow fix</li>
                         </ul>
                     </div>
                 </div>
@@ -822,7 +823,7 @@
                 }
 
                 const release = await response.json();
-                const version = release.tag_name || 'v1.0.0';
+                const version = release.tag_name || 'v1.0.3';
 
                 // Update version badge
                 document.getElementById('versionBadge').textContent = version;

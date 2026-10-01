@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:table_calendar/table_calendar.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -227,11 +228,14 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
   Widget _buildTopSection(ThemeData theme, ColorScheme habitScheme) {
     return Column(
       children: [
-        // App bar icons row: Back on left; Edit (pill), Share, Archive right
+        // App bar icons row: Back on left; Archive, Share, Edit (pill) right
         Row(
           children: [
             IconButton(
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                Navigator.of(context).pop();
+              },
               icon: Icon(
                 Icons.arrow_back_rounded,
                 color: theme.colorScheme.onSurface,
@@ -240,7 +244,34 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
               tooltip: 'Back',
             ),
             const Spacer(),
-            // 1) Edit — pill background, same color logic as the habit
+            // 1) Archive — plain icon.
+            IconButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _archiveHabit();
+              },
+              icon: Icon(
+                Icons.archive_outlined,
+                color: theme.colorScheme.onSurface,
+                size: 22,
+              ),
+              tooltip: 'Archive',
+            ),
+            // 2) Share — plain icon.
+            IconButton(
+              onPressed: () {
+                HapticFeedback.lightImpact();
+                _shareHabit();
+              },
+              icon: Icon(
+                Icons.ios_share_rounded,
+                color: theme.colorScheme.onSurface,
+                size: 22,
+              ),
+              tooltip: 'Share',
+            ),
+            const SizedBox(width: 4),
+            // 3) Edit — pill background, same color logic as the habit
             // logo: primaryContainer fill from THIS habit's own scheme.
             Tooltip(
               message: 'Edit Habit',
@@ -249,7 +280,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
                 borderRadius: BorderRadius.circular(100),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(100),
-                  onTap: _openEditScreen,
+                  onTap: () {
+                    HapticFeedback.lightImpact();
+                    _openEditScreen();
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
@@ -263,27 +297,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
                   ),
                 ),
               ),
-            ),
-            const SizedBox(width: 4),
-            // 2) Share — plain icon.
-            IconButton(
-              onPressed: _shareHabit,
-              icon: Icon(
-                Icons.ios_share_rounded,
-                color: theme.colorScheme.onSurface,
-                size: 22,
-              ),
-              tooltip: 'Share',
-            ),
-            // 3) Archive — plain icon.
-            IconButton(
-              onPressed: _archiveHabit,
-              icon: Icon(
-                Icons.archive_outlined,
-                color: theme.colorScheme.onSurface,
-                size: 22,
-              ),
-              tooltip: 'Archive',
             ),
           ],
         ),
